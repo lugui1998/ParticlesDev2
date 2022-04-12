@@ -9,6 +9,9 @@ class Tile {
     widthOffset = 0;
     heightOffset = 0;
 
+    globalOffsetX = 0;
+    globalOffsetY = 0;
+
     canvas
     index = 0;
 
@@ -22,13 +25,15 @@ class Tile {
     brushParticle = Names.Sand;
     brushSize = 5;
 
-    constructor(width, height, widthOffset, heightOffset, canvas, index) {
+    constructor(width, height, widthOffset, heightOffset, canvas, index, globalOffsetX, globalOffsetY) {
         this.widthStart = width;
         this.heightStart = height;
         this.widthOffset = widthOffset;
         this.heightOffset = heightOffset;
         this.canvas = canvas;
         this.index = index;
+        this.globalOffsetX = globalOffsetX;
+        this.globalOffsetY = globalOffsetY;
 
         const offscreenCanvas = canvas.transferControlToOffscreen();
 
@@ -38,13 +43,13 @@ class Tile {
             data: {
                 width: this.widthOffset,
                 height: this.heightOffset,
+                globalOffsetX: this.globalOffsetX,
+                globalOffsetY: this.globalOffsetY,
                 canvas: offscreenCanvas,
             }
         }, [offscreenCanvas]);
 
-        this.worker.onmessage = (e) => {
-            console.log(e.data);
-        }
+        this.worker.onmessage = this.handleWorkerMessage.bind(this);
 
         this.canvas.onmousemove = this.onMouseMove.bind(this);
         this.canvas.onmousedown = this.onMouseDown.bind(this);
@@ -54,9 +59,24 @@ class Tile {
 
     }
 
-    selectBrushParticle() {
+    handleWorkerMessage(e) {
+        const { type, data } = e.data;
+        switch (type) {
+            case 'debug': { console.log(data); break; }
+            case 'export': { data.tileIndex = this.index; this.emit('export', data); break; }
+            case 'imported': { this.emit('imported', data); break; }
+        }
 
     }
+
+    update() {
+        if (this.mousePressed) {
+            this.brushStroke(this.mousePrevPos, this.mousePos);
+        }
+        this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
+    }
+
+
 
     onMouseMove(e) {
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
@@ -106,6 +126,11 @@ class Tile {
 
     /* Brush */
     brushStroke(startPos, endPos) {
+        if (startPos.x === endPos.x && startPos.y === endPos.y) {
+            this.paintPixels(this.getPixelsInRadius(endPos, this.brushSize));
+            return;
+        }
+
         const pixelLine = this.traceLine(startPos, endPos);
         if (this.brushSize <= 0) {
             this.paintPixels(pixelLine);
@@ -157,19 +182,19 @@ class Tile {
     }
 
     traceLine(startPos, endPos) {
-        // generate a list of points along the line
+        // get all the points betwen the start and end points
         const points = [];
         const dx = endPos.x - startPos.x;
         const dy = endPos.y - startPos.y;
         const steps = Math.max(Math.abs(dx), Math.abs(dy));
-        const xInc = Math.round(dx / steps);
-        const yInc = Math.round(dy / steps);
+        const xInc = dx / steps;
+        const yInc = dy / steps;
         let x = startPos.x;
         let y = startPos.y;
         for (let i = 0; i < steps; i++) {
             points.push({
-                x,
-                y,
+                x: Math.floor(x),
+                y: Math.floor(y),
             });
             x += xInc;
             y += yInc;
@@ -196,6 +221,47 @@ class Tile {
         return pixels;
     }
 
+    getPixelsInSquare(pixel, radius) {
+        // get coordinates of pixels in a square around the pixel
+        const pixels = [];
+
+        // loop a square the size of the radius
+        for (let x = pixel.x - radius; x <= pixel.x + radius; x++) {
+            for (let y = pixel.y - radius; y <= pixel.y + radius; y++) {
+                pixels.push({
+                    x,
+                    y,
+                });
+            }
+        }
+        return pixels;
+    }
+
+    selectBrushParticle() {
+
+    }
+
+    removePixel(pixel) {
+        this.worker.postMessage({
+            type: 'removePixel',
+            data: {
+                pixel,
+            },
+        });
+
+    }
+
+    tryImport(originalTile, originalPixel, pixel, particle){
+        this.worker.postMessage({
+            type: 'import',
+            data: {
+                originalTile,
+                originalPixel,
+                pixel,
+                particle: particle,
+            },
+        });
+    }
 
     contains(x, y) {
         return x >= this.widthStart && x < this.widthStart + this.widthOffset &&

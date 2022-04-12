@@ -5,7 +5,7 @@ class Names {
 
 class Colors {
     static Void = [0, 0, 0];
-    static Sand = [255, 255, 255];
+    static Sand = [242, 189, 107];
 }
 
 class ParticleUtils {
@@ -17,31 +17,69 @@ class ParticleUtils {
     }
 }
 
-
-/* Particles */
-class Void {
-
-    GetName() {
-        return Names.Void;
-    }
-
-    GetColor() {
-        
-        return Colors.Void;
-    }
+class Particle {
 
 }
 
 /* Particles */
-class Sand {
+class Void extends Particle{
 
-    GetName() {
+    getName() {
+        return Names.Void;
+    }
+
+    getColor() {
+        
+        return Colors.Void;
+    }
+
+    process(grid, selfX, selfY) {
+        return null;
+    }
+    
+
+}
+
+/* Particles */
+class Sand extends Particle{
+
+    getName() {
         return Names.Sand;
     }
 
-    GetColor() {
+    getColor() {
         
         return Colors.Sand;
+    }
+
+    process(grid, selfX, selfY) {
+        let targetY = selfY + 1;
+
+        if(grid.exist(selfX, targetY)){
+            if(grid.existHere(selfX, targetY) && grid.isEmpty(selfX, targetY)) {
+                // Particle can move inside the tile
+                return {
+                    export: false,
+                    target: {
+                        x: selfX,
+                        y: targetY,
+                    }
+    
+                }
+            }
+            // particle may move but only if exported succesfully
+            return {
+                export: true,
+                target: {
+                    x: selfX,
+                    y: targetY,
+                }
+            }
+        }
+
+        
+
+        return null;
     }
 
 }
@@ -57,7 +95,7 @@ module.exports = {
     ParticleUtils,
     Names,
     Colors,
-    
+
     // Particles
     Void,
     Sand,

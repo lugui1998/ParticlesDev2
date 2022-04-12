@@ -5,28 +5,25 @@ class Sandbox {
 
     width = 0;
     height = 0;
-    workerCount = 0;
+    tileGridSize = 0;
 
     tiles = [];
 
     constructor(
         sandboxArea,
-        workerCount = 4,
+        tileGridSize = [4, 2],
     ) {
         this.width = sandboxArea.offsetWidth;
         this.height = sandboxArea.offsetHeight;
-        this.workerCount = workerCount;
+        this.tileGridSize = tileGridSize;
 
-        // Split the area into Tiles
-
-        const tileWidth = Math.ceil(this.width / workerCount);
-        const tileHeight = this.height;
-
-
+        const tileWidth = Math.ceil(this.width / this.tileGridSize[0]);
+        const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
+    
         let x = 0;
         do {
             let endX = x + tileWidth;
-            let y = 1;
+            let y = 0;
 
             do {
                 let endY = y + tileHeight;
@@ -39,7 +36,7 @@ class Sandbox {
                     endY = this.height;
                 }
 
-                console.log(`Creating tile at [${x} ${y}] to [${endX} ${endY}]`);
+                console.log(`Creating tile at [${x} ${y}] to [${endX} ${endY}] size [${endX - x} ${endY - y}]`);
 
                 const canvas = document.createElement('canvas');
                 canvas.width = endX - x;
@@ -52,7 +49,8 @@ class Sandbox {
 
                 sandboxArea.appendChild(canvas);
 
-                this.tiles.push(new Tile(x, y, tileWidth, tileHeight, canvas, this.tiles.length));
+                this.tiles.push(new Tile(x, y, tileWidth, tileHeight, canvas, this.tiles.length, this.width, this.height));
+
                 y = endY;
             } while (y < this.height);
             x = endX;
@@ -65,6 +63,47 @@ class Sandbox {
                 this.handlePaintingOutOfBounds(data);
             });
         });
+
+        this.tiles.forEach(tile => {
+            tile.on('export', (data) => {
+                this.dispatchParticles(data);
+            });
+        });
+
+        this.tiles.forEach(tile => {
+            tile.on('imported', (data) => {
+                this.handleImportedPixel(data);
+            });
+        });
+    }
+
+    update () {
+        this.tiles.forEach(tile => {
+            tile.update();
+        });
+    }
+
+    handleImportedPixel(data) {
+        const tile = this.tiles[data.originalTile];
+        tile.removePixel(data.originalPixel);
+    }
+    
+    dispatchParticles(data) {
+        const sourceTile = this.tiles[data.tileIndex];
+        const sourceWidthStart = sourceTile.widthStart;
+        const sourceHeightStart = sourceTile.heightStart;
+        
+        const globalPixel = {
+            x: data.target.x + sourceWidthStart,
+            y: data.target.y + sourceHeightStart,
+        }
+
+        const targetTileIndex = this.getTileAt(globalPixel.x, globalPixel.y);
+        const targetTile = this.tiles[targetTileIndex];
+
+        const pix = this.globalToLocalCoordinates(globalPixel, targetTile.widthStart, targetTile.heightStart);
+
+        targetTile.tryImport(targetTileIndex, data.coords, pix, data.particle);
     }
 
     handlePaintingOutOfBounds(data) {
