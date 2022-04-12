@@ -1,0 +1,14 @@
+{
+  "name": "particlesdev",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "bundle": "browserify src/particles.js -o out/particles.js & browserify src/pixelWorker.js -o out/pixelWorker.js",
+    "release": "browserify src/particles.js | uglifyjs -c > out/particles.min.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+  }
+}
