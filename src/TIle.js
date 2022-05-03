@@ -1,5 +1,6 @@
 
 class Tile {
+    inUpdate = false;
     worker = null;
     constructor(canvas, sharedBuffer, startX, startY, endX, endY, pixelDataSize, width, height) {
         const offscreenCanvas = canvas.transferControlToOffscreen();
@@ -24,10 +25,19 @@ class Tile {
 
     }
 
+    update() {
+        if (this.inUpdate) return;
+        this.inUpdate = true;
+        this.worker.postMessage({
+            type: 'doPhysics',
+        });
+    }
+
     handleWorkerMessage(e) {
         const { type, data } = e.data;
         switch (type) {
             case 'debug': { console.log(data); break; }
+            case 'donePhysics': { this.inUpdate = false; break; }
         }
 
     }

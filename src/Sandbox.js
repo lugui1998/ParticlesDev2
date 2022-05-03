@@ -137,6 +137,17 @@ class Sandbox {
             this.brushStroke(this.mousePrevPos, this.mousePos);
         }
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
+
+        let inUpdate = false;
+        for(const tile of this.tiles) {
+            inUpdate |= tile.inUpdate;
+        }
+
+        if(!inUpdate) {
+            for(const tile of this.tiles) {
+                tile.update();
+            }
+        }
     }
 
     /* Brush */

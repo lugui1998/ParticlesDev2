@@ -21,6 +21,7 @@ onmessage = function (e) {
 function handleMessage(message) {
   switch (message.type) {
     case 'init': initPixelGrid(message.data); break;
+    case 'doPhysics': doPhysics(); break;
   }
 }
 
@@ -64,7 +65,6 @@ function render() {
     }
   }
   ctx.putImageData(imagedata, 0, 0);
-  doPhysics();
   requestAnimationFrame(render);
 }
 
@@ -109,11 +109,12 @@ function doPhysics() {
   for (let y = endY - 1; y >= startY; y--) {
     for (let x = endX - 1; x >= startX; x--) {
       processPixel(x, y);
-
-
-
     }
   }
+
+  postMessage({
+    type: 'donePhysics',
+  });
 }
 
 

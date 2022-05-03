@@ -10,7 +10,7 @@ const columns = sandboxArea.offsetWidth;
 
 // Calculate the amount of tiles
 const tilesWidth = Math.floor(columns / 400);
-const tilesHeight = Math.ceil(rows / 300);
+const tilesHeight = Math.ceil(rows / 1000);
 
 const tileGridSize = [tilesWidth, tilesHeight];
 const sandbox = new Sandbox(sandboxArea, tileGridSize);
@@ -19,8 +19,6 @@ const sandbox = new Sandbox(sandboxArea, tileGridSize);
 
 function update() {
     sandbox.update();
-
-
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
 
     window.requestAnimationFrame(update);
