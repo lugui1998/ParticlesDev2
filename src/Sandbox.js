@@ -27,6 +27,8 @@ class Sandbox {
     brushParticle = Particles.Sand;
     brushSize = 1;
 
+    canvas;
+
     pauseState = false;
 
     constructor(
@@ -63,18 +65,18 @@ class Sandbox {
 
                 console.log(`Creating tile at [${x} ${y}] to [${endX} ${endY}] size [${endX - x} ${endY - y}]`);
 
-                const canvas = document.createElement('canvas');
-                canvas.width = endX - x;
-                canvas.height = endY - y;
+                this.canvas = document.createElement('canvas');
+                this.canvas.width = endX - x;
+                this.canvas.height = endY - y;
 
                 // set canvas position on screen
-                canvas.style.position = 'absolute';
-                canvas.style.left = `${x}px`;
-                canvas.style.top = `${y}px`;
+                this.canvas.style.position = 'absolute';
+                this.canvas.style.left = `${x}px`;
+                this.canvas.style.top = `${y}px`;
 
-                sandboxArea.appendChild(canvas);
+                sandboxArea.appendChild(this.canvas);
 
-                this.tiles.push(new Tile(tileIndex++, canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
+                this.tiles.push(new Tile(tileIndex++, this.canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
 
                 y = endY;
             } while (y < this.height);
@@ -308,6 +310,12 @@ class Sandbox {
     clear(){
         for(let i = 0; i < this.grid.length; i++){
             this.grid[i] = 0;
+        }
+    }
+
+    terminate() {
+        for(const tile of this.tiles){
+            tile.terminate();
         }
     }
 

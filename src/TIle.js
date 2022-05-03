@@ -62,6 +62,10 @@ class Tile {
         });
     }
 
+    terminate() {
+        this.worker.terminate();
+    }
+
 }
 
 module.exports = Tile;

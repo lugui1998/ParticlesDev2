@@ -1,5 +1,4 @@
 const { Colors, Particles } = require('./Particles/Particles');
-const Random = require('./Utils/Random');
 
 let pixelData;
 let canvas;
@@ -14,7 +13,7 @@ let screenHeight;
 let width;
 let height;
 
-const subTileSIze = 50;
+const subTileSIze = 100;
 let subTiles = [];
 let tileCheckIndex = 0;
 

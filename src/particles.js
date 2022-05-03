@@ -9,17 +9,25 @@ const brushMinus = document.getElementById('brushMinus');
 const brushPlus = document.getElementById('brushPlus');
 const clear = document.getElementById('clear');
 
-const rows = sandboxArea.offsetHeight;
-const columns = sandboxArea.offsetWidth;
+let lagWarning = true;
+// enable in 5 seconds
+setTimeout(() => {
+    lagWarning = false;
+}, 5000);
 
 
+let rows = sandboxArea.offsetHeight;
+let columns = sandboxArea.offsetWidth;
 // Calculate the amount of tiles
-const tilesWidth = Math.floor(columns / 400);
-const tilesHeight = Math.ceil(rows / 1400);
+let tilesWidth = Math.floor(columns / 400);
+let tilesHeight = Math.ceil(rows / 1400);
 
 const tileGridSize = [tilesWidth, tilesHeight];
-const sandbox = new Sandbox(sandboxArea, tileGridSize);
+let sandbox = new Sandbox(sandboxArea, tileGridSize);
 
+window.addEventListener('resize', () => {
+    document.location.reload();
+});
 
 pause.addEventListener('click', () => {
     sandbox.togglePauseState();
@@ -60,14 +68,23 @@ function update() {
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
 
     brush.textContent = `Brush:${sandbox.getBrushSize()}`
-   
+
 
     window.requestAnimationFrame(update);
 }
 window.requestAnimationFrame(update);
 
 // Update the menu on less improtant stuff
-setInterval(() => {
+setInterval(async () => {
     pause.textContent = sandbox.getPauseState() ? 'Play' : 'Pause';
     fps.textContent = `${sandbox.getPauseState() == false ? Math.floor(sandbox.getPhysicsFPS()) : '00'}`;
+
+    // Warn the user if the physics is lagging
+    if (sandbox.getPhysicsFPS() < 5 && !lagWarning && (rows > 1000 || columns > 1000)) {
+        lagWarning = true;
+        sandbox.mousePressed = false;
+        alert('Physics is lagging. Consider running on a smaller window.');
+    }
+
+
 }, 100);
