@@ -25,7 +25,7 @@ class Sandbox {
     grid = null;
 
     brushParticle = Particles.Sand;
-    brushSize = 5;
+    brushSize = 1;
 
     pauseState = false;
 
@@ -267,6 +267,15 @@ class Sandbox {
 
     }
 
+    getBrushSize(){
+        return this.brushSize;
+    }
+
+    setBrushSize(size){
+        this.brushSize = size > 10 ? 10 : size;
+        this.brushSize = this.brushSize < 0 ? 0 : this.brushSize;
+    }
+
     pixelCoordsToPixelIndex(x, y) {
         // convert pixel coordinates to grid index
         return (x + y * this.width) * pixelDataSize;
@@ -294,6 +303,12 @@ class Sandbox {
 
     togglePauseState() {
         this.pauseState = !this.pauseState;
+    }
+
+    clear(){
+        for(let i = 0; i < this.grid.length; i++){
+            this.grid[i] = 0;
+        }
     }
 
 }
