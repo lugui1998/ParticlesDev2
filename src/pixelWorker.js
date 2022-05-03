@@ -1,14 +1,18 @@
-const { ParticleUtils } = require('./Particles/Particles');
-const ParticleGrid = require('./ParticleGrid');
+const { Colors, Particles } = require('./Particles/Particles');
 
+let pixelData;
+let canvas;
+let startX;
+let startY;
+let endX;
+let endY;
+let pixelDataSize;
+let screenWidth;
+let screenHeight;
 
-let width = 0;
-let height = 0;
-let globalOffsetX = 0;
-let globalOffsetY = 0;
-let canvas = null;
+let width;
+let height;
 
-let grid = null;
 
 onmessage = function (e) {
   handleMessage(e.data);
@@ -17,113 +21,204 @@ onmessage = function (e) {
 function handleMessage(message) {
   switch (message.type) {
     case 'init': initPixelGrid(message.data); break;
-    case 'end': self.close(); break;
-    case 'paint': paint(message.data); break;
-    case 'import': handleImport(message.data); break;
-    case 'removePixel': removePixel(message.data.pixel); break;
   }
 }
 
-function handleImport(data) {
-  if (grid.existHere(data.pixel.x, data.pixel.y) && grid.isEmpty(data.pixel.x, data.pixel.y)) {
-    grid.overide(data.pixel.x, data.pixel.y, ParticleUtils.createByName(data.particle));
-    postMessage({
-      type: 'imported',
-      data: {
-        originalTile: data.originalTile,
-        originalPixel: data.originalPixel
-      }
-    });
-  }
-}
-
-function paint(data) {
-  const pixels = data.pixels;
-
-  for (const pixel of pixels) {
-    try {
-      grid.overide(pixel.x, pixel.y, ParticleUtils.createByName(data.particleName));
-    } catch (e) {
-      console.log(e);
-    }
-  }
-}
 
 function initPixelGrid(data) {
-  width = data.width;
-  height = data.height;
+  pixelData = new Int16Array(data.sharedBuffer);
   canvas = data.canvas;
-  globalOffsetX = data.globalOffsetX;
-  globalOffsetY = data.globalOffsetY;
+  startX = data.startX;
+  startY = data.startY;
+  endX = data.endX;
+  endY = data.endY;
+  width = endX - startX;
+  height = endY - startY;
+  pixelDataSize = data.pixelDataSize;
+  screenWidth = data.screenWidth;
+  screenHeight = data.screenHeight;
 
-  grid = new ParticleGrid(width, height, globalOffsetX, globalOffsetY);
+  console.log(screenWidth, screenHeight);
 
   ctx = canvas.getContext('2d', { alpha: false });
   requestAnimationFrame(render);
 }
 
 function render() {
-  if (doPhysics()) {
-    // debugger;
-  }
-  // fill canvas with random colors for each pixel
   let imagedata = ctx.createImageData(width, height);
-  for (let i = 0; i < width; i++) {
-    for (let j = 0; j < height; j++) {
-      const pixelindex = (i + j * width) * 4;
-      const color = grid.get(i, j).getColor();
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      const pixelIndex = coordsToIndex(x, y);
+      const pixeldData = desserialziePixel(pixelIndex);
+      // Map the index to the actual position without offset
+      const imageIndex = (x - startX + (y - startY) * width) * 4;
 
-      imagedata.data[pixelindex] = color[0];
-      imagedata.data[pixelindex + 1] = color[1];
-      imagedata.data[pixelindex + 2] = color[2];
-      imagedata.data[pixelindex + 3] = 255;
+      const color = Colors[pixeldData.type];
+
+      // add a pixel
+      imagedata.data[imageIndex] = color[0];
+      imagedata.data[imageIndex + 1] = color[1];
+      imagedata.data[imageIndex + 2] = color[2];
+      imagedata.data[imageIndex + 3] = 255;
+
     }
   }
   ctx.putImageData(imagedata, 0, 0);
+  doPhysics();
   requestAnimationFrame(render);
 }
 
+function coordsToIndex(x, y) {
+  // On a array of size screenWidth * screenHeight
+  // Find the index of the pixel determined by the x and y coordinates
+
+  return (x + y * screenWidth) * pixelDataSize;
+}
+
+
+function desserialziePixel(index) {
+  // Retrives the data about the pixel from the shared buffer
+  // This is done by calculating the index of the pixel in the shared buffer
+  // then getting the next pixelDataSize values
+
+  const data = pixelData.slice(index, index + pixelDataSize);
+
+  return {
+    type: data[0],
+    info1: data[1],
+    info2: data[2],
+    info3: data[3],
+  };
+
+}
+
+// Pixel Object to Array
+function serializePixel(pixel) {
+  return [
+    pixel.type,
+    pixel.info1,
+    pixel.info2,
+    pixel.info3,
+  ];
+}
+
 function doPhysics() {
-  let donePhysics = false;
-  for (let i = 0; i < width; i++) {
-    for (let j = height - 1; j >= 0; j--) {
-      const particle = grid.get(i, j);
-      const changes = particle.process(grid, i, j);
+  // Process the physics of each pixel of the worker.
+  // from endY to startY, from endX to startX
 
-      if (changes) {
-        donePhysics = true;
+  for (let y = endY - 1; y >= startY; y--) {
+    for (let x = endX - 1; x >= startX; x--) {
+      processPixel(x, y);
 
-        if (changes.export) {
-          // Export the particle
-          postMessage({
-            type: 'export',
-            data: {
-              coords: {
-                x: i,
-                y: j,
-              },
-              target: changes.target,
-              particle: particle.getName(),
-            }
-          });
-        } else {
-          grid.erase(i, j);
-          grid.overide(changes.target.x, changes.target.y, particle);
-        }
-
-      }
 
 
     }
   }
-  return donePhysics;
-}
-
-function removePixel(pixel) {
-  grid.erase(pixel.x, pixel.y);
 }
 
 
+function processPixel(x, y) {
+  const index = coordsToIndex(x, y);
+  const data = desserialziePixel(index);
+
+  switch (data.type) {
+    case Particles.Void: { break; }
+    case Particles.Sand: { sand(x, y, index, data); break; }
+  }
+}
+
+function isInBounds(x, y) {
+  // check if a pixel is within the screen space
+  return x >= 0 && x < screenWidth && y >= 0 && y < screenHeight;
+}
+
+function isEmpty(x, y) {
+  if (!isInBounds(x, y)) return false;
+  const index = coordsToIndex(x, y);
+  const data = desserialziePixel(index);
+  return data.type === Particles.Void;
+}
+
+function setPixel(index, data) {
+  let i = 0;
+  do {
+    pixelData[index] = data[0];
+  } while (++i < pixelDataSize);
+}
+
+function deletePixel(index) {
+  pixelData[index] = Particles.Void;
+  let i = 1;
+  do {
+    pixelData[index] = 0;
+  } while (++i < pixelDataSize);
+}
+
+/* Particle Physics */
+
+function sand(x, y, index, data) {
+  const maxKinecticEnergy = 2;
+  const maxDownMovement = 2;
+
+  let kinecticEnergy = data.info1;
+  let stepX = x;
+  let stepY = y;
+  let setpIndex = index;
+  let setepData = data;
+
+  // Check if the pixel bellow is empty.
+  // if it is, check the next one up to maxMovesDown
+  // stop when the target space is not empty or the maxMovesDown is reached
+
+  let i = 0;
+  let targetX = x;
+  let targetY = y;
+  let targetIndex;
+  let targetData = null;
+  do {
+    targetY++;
+    targetIndex = coordsToIndex(targetX, targetY);
+    targetData = desserialziePixel(targetIndex);
+    if (isEmpty(targetX, targetY)) {
+      stepX = targetX;
+      stepY = targetY;
+      setpIndex = targetIndex;
+    } else {
+      break;
+    }
+  } while (++i <= maxDownMovement);
+
+  kinecticEnergy = kinecticEnergy < maxKinecticEnergy ? kinecticEnergy + 1 : maxKinecticEnergy;
+
+  // now, the particle may move sideways if it is able to.
+  // chooses a random direction: 1, 0, -1
+  const randomDirection = Math.floor(Math.random() * 3) - 1;
+  let sideMoves = 0;
+  while (++sideMoves <= kinecticEnergy) {
+    targetX += randomDirection;
+    targetIndex = coordsToIndex(targetX, targetY);
+    targetData = desserialziePixel(targetIndex);
+    kinecticEnergy--;
+    if (isEmpty(targetX, targetY)) {
+      stepX = targetX;
+      stepY = targetY;
+      setpIndex = targetIndex;
+    } else {
+      break;
+    }
+  }
+
+
+  // movements finished
+  setepData.info1 = kinecticEnergy;
+
+  // move the particle to the target position
+  setPixel(setpIndex, serializePixel(setepData));
+  if (stepX !== x || stepY !== y) {
+    deletePixel(index);
+  }
+
+}
 
 
 

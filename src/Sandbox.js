@@ -1,5 +1,8 @@
-
 const Tile = require('./Tile');
+
+const { Particles, Colors, } = require('./Particles/Particles');
+
+const pixelDataSize = 4;
 
 class Sandbox {
 
@@ -7,7 +10,19 @@ class Sandbox {
     height = 0;
     tileGridSize = 0;
 
+    sharedBuffer = null;
     tiles = [];
+
+    mousePrevPos = {};
+    mousePos = {x: 0, y: 0};
+    mousePressed = false;
+
+    sandboxArea = null;
+
+    grid = null;
+
+    brushParticle = Particles.Sand;
+    brushSize = 5;
 
     constructor(
         sandboxArea,
@@ -16,10 +31,18 @@ class Sandbox {
         this.width = sandboxArea.offsetWidth;
         this.height = sandboxArea.offsetHeight;
         this.tileGridSize = tileGridSize;
+        this.sandboxArea = sandboxArea;
+
+        console.log(this.height);
+        
+
+        // allocate a sahred buffer
+        this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * 2 * pixelDataSize);
+        this.grid = new Int16Array(this.sharedBuffer);        
 
         const tileWidth = Math.ceil(this.width / this.tileGridSize[0]);
         const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
-    
+
         let x = 0;
         do {
             let endX = x + tileWidth;
@@ -49,7 +72,7 @@ class Sandbox {
 
                 sandboxArea.appendChild(canvas);
 
-                this.tiles.push(new Tile(x, y, tileWidth, tileHeight, canvas, this.tiles.length, this.width, this.height));
+                this.tiles.push(new Tile(canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
 
                 y = endY;
             } while (y < this.height);
@@ -57,106 +80,162 @@ class Sandbox {
         } while (x < this.width);
 
 
-        // Add nevent listeners to each tile
-        this.tiles.forEach(tile => {
-            tile.on('paintingOutOfBounds', (data) => {
-                this.handlePaintingOutOfBounds(data);
-            });
-        });
-
-        this.tiles.forEach(tile => {
-            tile.on('export', (data) => {
-                this.dispatchParticles(data);
-            });
-        });
-
-        this.tiles.forEach(tile => {
-            tile.on('imported', (data) => {
-                this.handleImportedPixel(data);
-            });
-        });
+        this.sandboxArea.onmousemove = this.HandleOnMouseMove.bind(this);
+        this.sandboxArea.onmousedown = this.HandleOnMouseDown.bind(this);
+        this.sandboxArea.onmouseup = this.HandleOnMouseUp.bind(this);
+        this.sandboxArea.onmouseenter = this.HandleOnMouseEnter.bind(this);
+        this.sandboxArea.onmouseleave = this.HandleOnMouseLeave.bind(this);
     }
 
-    update () {
-        this.tiles.forEach(tile => {
-            tile.update();
-        });
+    HandleOnMouseMove(e) {
+        this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
+        this.mousePos = {
+            x: e.clientX,
+            y: e.clientY,
+        };
+        if (this.mousePressed) {
+            this.brushStroke(this.mousePrevPos, this.mousePos);
+        }
     }
 
-    handleImportedPixel(data) {
-        const tile = this.tiles[data.originalTile];
-        tile.removePixel(data.originalPixel);
+    HandleOnMouseDown(e) {
+        this.mousePressed = true;
+        this.brushStroke(this.mousePrevPos, this.mousePos);
     }
-    
-    dispatchParticles(data) {
-        const sourceTile = this.tiles[data.tileIndex];
-        const sourceWidthStart = sourceTile.widthStart;
-        const sourceHeightStart = sourceTile.heightStart;
-        
-        const globalPixel = {
-            x: data.target.x + sourceWidthStart,
-            y: data.target.y + sourceHeightStart,
+
+    HandleOnMouseUp(e) {
+        this.mousePressed = false;
+    }
+
+    HandleOnMouseEnter(e) {
+        this.mousePressed = e.buttons > 0 ? true : false;
+
+        // if it is clicked, it should start with a stroke
+        if (this.mousePressed) {
+            this.mousePos = {
+                x: e.clientX,
+                y: e.clientY,
+            }
+            this.brushStroke(this.mousePos, this.mousePos);
+        }
+    }
+
+    HandleOnMouseLeave(e) {
+        // If it was clicked, then it should make a stroke before ending the mouse click
+        if (this.mousePressed) {
+            this.brushStroke(this.mousePos, {
+                x: e.clientX,
+                y: e.clientY,
+            });
         }
 
-        const targetTileIndex = this.getTileAt(globalPixel.x, globalPixel.y);
-        const targetTile = this.tiles[targetTileIndex];
-
-        const pix = this.globalToLocalCoordinates(globalPixel, targetTile.widthStart, targetTile.heightStart);
-
-        targetTile.tryImport(targetTileIndex, data.coords, pix, data.particle);
+        this.mousePressed = false;
     }
 
-    handlePaintingOutOfBounds(data) {
-        const sourceTile = this.tiles[data.tileIndex];
-        const sourceWidthStart = sourceTile.widthStart;
-        const sourceHeightStart = sourceTile.heightStart;
+    update() {
+        if (this.mousePressed) {
+            this.brushStroke(this.mousePrevPos, this.mousePos);
+        }
+        this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
+    }
 
-        const tilePackets = [];
-        for (const pixel of data.pixels) {
-            const globalPixel = {
-                x: pixel.x + sourceWidthStart,
-                y: pixel.y + sourceHeightStart,
+    /* Brush */
+    brushStroke(startPos, endPos) {
+        if (startPos.x === endPos.x && startPos.y === endPos.y) {
+            this.paintPixels(this.getPixelsInRadius(endPos, this.brushSize));
+            return;
+        }
+
+        const pixelLine = this.traceLine(startPos, endPos);
+        if (this.brushSize <= 0) {
+            this.paintPixels(pixelLine);
+        }
+
+        const effectedPixels = new Set();
+        for (const pixel of pixelLine) {
+            const pixelsInRadius = this.getPixelsInRadius(pixel, this.brushSize);
+            for (const pixelInRadius of pixelsInRadius) {
+                effectedPixels.add(pixelInRadius);
             }
+        }
+        this.paintPixels(effectedPixels);
+    }
 
-            // check if it is outside of the canvas
-            if (globalPixel.x < 0 || globalPixel.x >= this.width || globalPixel.y < 0 || globalPixel.y >= this.height) {
+    paintPixels(effectedPixels) {
+        for (const pixel of effectedPixels) {
+            // check if the pixel is out of bounds
+            if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
                 continue;
             }
 
-            const tileIndex = this.getTileAt(globalPixel.x, globalPixel.y);
-
-            if (!tilePackets[tileIndex]) {
-                tilePackets[tileIndex] = [];
-            }
-
-            const targetTile = this.tiles[tileIndex];
-
-            const pix = this.globalToLocalCoordinates(globalPixel, targetTile.widthStart, targetTile.heightStart);
-            tilePackets[tileIndex].push(pix);
-        }
-
-        for (let i = 0; i < this.tiles.length; i++) {
-            const tile = this.tiles[i];
-            const pixels = tilePackets[i];
-
-            if (pixels) {
-                tile.paintPixels(pixels);
-            }
+            const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
+            this.grid[index] = this.brushParticle;
         }
     }
 
-    globalToLocalCoordinates(pixel, sourceWidthStart, sourceHeightStart) {
-        pixel.x -= sourceWidthStart;
-        pixel.y -= sourceHeightStart;
-        return pixel;
+    traceLine(startPos, endPos) {
+        // get all the points betwen the start and end points
+        const points = [];
+        const dx = endPos.x - startPos.x;
+        const dy = endPos.y - startPos.y;
+        const steps = Math.max(Math.abs(dx), Math.abs(dy));
+        const xInc = dx / steps;
+        const yInc = dy / steps;
+        let x = startPos.x;
+        let y = startPos.y;
+        for (let i = 0; i < steps; i++) {
+            points.push({
+                x: Math.floor(x),
+                y: Math.floor(y),
+            });
+            x += xInc;
+            y += yInc;
+        }
+        return points;
     }
 
-    getTileAt(x, y) {
-        for (const tile of this.tiles) {
-            if (tile.contains(x, y)) {
-                return tile.index;
+    getPixelsInRadius(pixel, radius) {
+        // get coordinates of pixels in a circle around the pixel
+        const pixels = [];
+
+        // loop a square the size of the radius
+        for (let x = pixel.x - radius; x <= pixel.x + radius; x++) {
+            for (let y = pixel.y - radius; y <= pixel.y + radius; y++) {
+                // if the pixel is within the radius
+                if (Math.sqrt(Math.pow(x - pixel.x, 2) + Math.pow(y - pixel.y, 2)) <= radius) {
+                    pixels.push({
+                        x,
+                        y,
+                    });
+                }
             }
         }
+        return pixels;
+    }
+
+    getPixelsInSquare(pixel, radius) {
+        // get coordinates of pixels in a square around the pixel
+        const pixels = [];
+
+        // loop a square the size of the radius
+        for (let x = pixel.x - radius; x <= pixel.x + radius; x++) {
+            for (let y = pixel.y - radius; y <= pixel.y + radius; y++) {
+                pixels.push({
+                    x,
+                    y,
+                });
+            }
+        }
+        return pixels;
+    }
+
+    selectBrushParticle() {
+
+    }
+
+    pixelCoordsToPixelIndex(x, y) {
+        // convert pixel coordinates to grid index
+        return (x + y * this.width) * pixelDataSize;
     }
 
 }
