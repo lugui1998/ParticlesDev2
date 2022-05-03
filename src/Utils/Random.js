@@ -1,7 +1,8 @@
 class Random {
 
     static int(min, max) {
-        return Math.random() * (max - min) + min;
+        // return random integer
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
     static getRandomRGB() {

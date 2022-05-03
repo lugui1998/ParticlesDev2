@@ -70,11 +70,18 @@ footer {
     grid-template-columns: auto auto auto;
 }
 
-.setting {
+.settingGrid {
     display: grid;
     margin-left: auto;
     margin-right: auto;
     grid-template-columns: 5% 90% 5%;
+    padding: 1px;
+}
+
+.setting {
+    display: grid;
+    margin-left: auto;
+    margin-right: auto;
     padding: 1px;
 }
 

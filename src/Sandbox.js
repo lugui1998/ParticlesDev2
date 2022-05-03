@@ -10,11 +10,14 @@ class Sandbox {
     height = 0;
     tileGridSize = 0;
 
+    physicsStartTime = 0;
+    lastFramesTimes = [];
+
     sharedBuffer = null;
     tiles = [];
 
     mousePrevPos = {};
-    mousePos = {x: 0, y: 0};
+    mousePos = { x: 0, y: 0 };
     mousePressed = false;
 
     sandboxArea = null;
@@ -23,6 +26,8 @@ class Sandbox {
 
     brushParticle = Particles.Sand;
     brushSize = 5;
+
+    pauseState = false;
 
     constructor(
         sandboxArea,
@@ -33,16 +38,13 @@ class Sandbox {
         this.tileGridSize = tileGridSize;
         this.sandboxArea = sandboxArea;
 
-        console.log(this.height);
-        
-
         // allocate a sahred buffer
         this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * 2 * pixelDataSize);
-        this.grid = new Int16Array(this.sharedBuffer);        
+        this.grid = new Int16Array(this.sharedBuffer);
 
         const tileWidth = Math.ceil(this.width / this.tileGridSize[0]);
         const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
-
+        let tileIndex = 0;
         let x = 0;
         do {
             let endX = x + tileWidth;
@@ -72,7 +74,7 @@ class Sandbox {
 
                 sandboxArea.appendChild(canvas);
 
-                this.tiles.push(new Tile(canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
+                this.tiles.push(new Tile(tileIndex++, canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
 
                 y = endY;
             } while (y < this.height);
@@ -139,12 +141,21 @@ class Sandbox {
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
 
         let inUpdate = false;
-        for(const tile of this.tiles) {
+        for (const tile of this.tiles) {
             inUpdate |= tile.inUpdate;
         }
 
-        if(!inUpdate) {
-            for(const tile of this.tiles) {
+        if (!inUpdate && !this.pauseState) {
+            const timeNow = performance.now();
+            const lastFrameTime = timeNow - this.physicsStartTime;
+            this.lastFramesTimes.push(lastFrameTime);
+
+            if(this.lastFramesTimes.length > 10) {
+                this.lastFramesTimes.shift();
+            }
+
+            this.physicsStartTime = timeNow;
+            for (const tile of this.tiles) {
                 tile.update();
             }
         }
@@ -173,6 +184,7 @@ class Sandbox {
     }
 
     paintPixels(effectedPixels) {
+        const pixelChunks = [];
         for (const pixel of effectedPixels) {
             // check if the pixel is out of bounds
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
@@ -181,6 +193,17 @@ class Sandbox {
 
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
             this.grid[index] = this.brushParticle;
+
+            // find the chunk that the pixel belongs to
+            const tileIndex = this.pixelCoordsToTileIndex(pixel.x, pixel.y);
+            pixelChunks[tileIndex] = pixelChunks[tileIndex] || [];
+            pixelChunks[tileIndex].push([pixel.x, pixel.y]);
+        }
+        
+        for (const tile of this.tiles) {
+            if (pixelChunks[tile.tileIndex] !== undefined) {
+                tile.updatePixels(pixelChunks[tile.tileIndex]);
+            }
         }
     }
 
@@ -247,6 +270,30 @@ class Sandbox {
     pixelCoordsToPixelIndex(x, y) {
         // convert pixel coordinates to grid index
         return (x + y * this.width) * pixelDataSize;
+    }
+
+    pixelCoordsToTileIndex(x, y) {
+        return this.tiles.findIndex(tile => {
+            return tile.startX <= x && tile.endX >= x && tile.startY <= y && tile.endY >= y;
+        });
+    }
+
+    getPhysicsFPS() {
+        // calculate the FPS based on the average of the time in the lastFramesTimes array
+        let sum = 0;
+        for (const time of this.lastFramesTimes) {
+            sum += time;
+        }
+        return 1000 / (sum / this.lastFramesTimes.length);
+
+    }
+
+    getPauseState() {
+        return this.pauseState;
+    }
+
+    togglePauseState() {
+        this.pauseState = !this.pauseState;
     }
 
 }

@@ -2,8 +2,21 @@
 class Tile {
     inUpdate = false;
     worker = null;
-    constructor(canvas, sharedBuffer, startX, startY, endX, endY, pixelDataSize, width, height) {
+    tileIndex = -1;
+    startX = 0;
+    startY = 0;
+    endX = 0;
+    endY = 0;
+
+    constructor(tileIndex, canvas, sharedBuffer, startX, startY, endX, endY, pixelDataSize, width, height) {
         const offscreenCanvas = canvas.transferControlToOffscreen();
+
+        this.tileIndex = tileIndex;
+
+        this.startX = startX;
+        this.startY = startY;
+        this.endX = endX;
+        this.endY = endY;
 
         this.worker = new Worker('pixelWorker.js');
         this.worker.postMessage({
@@ -40,6 +53,13 @@ class Tile {
             case 'donePhysics': { this.inUpdate = false; break; }
         }
 
+    }
+
+    updatePixels(pixelArr) {
+        this.worker.postMessage({
+            type: 'updatePixels',
+            data: pixelArr
+        });
     }
 
 }
