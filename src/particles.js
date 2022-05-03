@@ -14,7 +14,7 @@ const columns = sandboxArea.offsetWidth;
 
 
 // Calculate the amount of tiles
-const tilesWidth = Math.floor(columns / 200);
+const tilesWidth = Math.floor(columns / 400);
 const tilesHeight = Math.ceil(rows / 1400);
 
 const tileGridSize = [tilesWidth, tilesHeight];
