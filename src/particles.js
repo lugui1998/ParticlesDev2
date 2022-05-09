@@ -1,3 +1,10 @@
+// check if SharedArrayBuffer is supported
+if (typeof SharedArrayBuffer === 'undefined') {
+    alert('This page can only run on modern browsers.');
+    throw new Error('SharedArrayBuffer is not supported');
+}
+    
+
 const Sandbox = require('./Sandbox');
 
 const sandboxArea = document.getElementById('sandboxArea');
@@ -19,8 +26,8 @@ setTimeout(() => {
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
 // Calculate the amount of tiles
-let tilesWidth = Math.floor(columns / 400);
-let tilesHeight = Math.ceil(rows / 1400);
+let tilesWidth = Math.floor(columns / 50);
+let tilesHeight = Math.ceil(rows / 1200);
 
 const tileGridSize = [tilesWidth, tilesHeight];
 let sandbox = new Sandbox(sandboxArea, tileGridSize);
@@ -64,15 +71,16 @@ clear.addEventListener('click', () => {
 
 
 function update() {
-    sandbox.update();
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
-
     brush.textContent = `Brush:${sandbox.getBrushSize()}`
-
-
     window.requestAnimationFrame(update);
 }
 window.requestAnimationFrame(update);
+
+setInterval(() => {
+    // not using requestAnimationFrame because it doesn't update while the browser is paused
+    sandbox.update();
+}, 10);
 
 // Update the menu on less improtant stuff
 setInterval(async () => {

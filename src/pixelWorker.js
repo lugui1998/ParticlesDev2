@@ -13,7 +13,7 @@ let screenHeight;
 let width;
 let height;
 
-const subTileSIze = 100;
+const subTileSize = 50;
 let subTiles = [];
 let tileCheckIndex = 0;
 
@@ -49,13 +49,13 @@ function initPixelGrid(data) {
   // this os not a problem because there are no pixels to process in those parts
 
   // Create subtiles
-  for (let y = startY; y < endY; y += subTileSIze) {
-    for (let x = startX; x < endX; x += subTileSIze) {
+  for (let y = startY; y < endY; y += subTileSize) {
+    for (let x = startX; x < endX; x += subTileSize) {
       subTiles.push({
         startX: x,
         startY: y,
-        endX: Math.min(x + subTileSIze, endX),
-        endY: Math.min(y + subTileSIze, endY),
+        endX: Math.min(x + subTileSize, endX),
+        endY: Math.min(y + subTileSize, endY),
         active: false,
       });
     }
@@ -70,11 +70,11 @@ function render() {
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
       const pixelIndex = coordsToIndex(x, y);
-      const pixeldData = desserialziePixel(pixelIndex);
+      // const pixeldData = desserialziePixel(pixelIndex);
       // Map the index to the actual position without offset
       const imageIndex = (x - startX + (y - startY) * width) * 4;
 
-      const color = Colors[pixeldData.type];
+      let color = Colors[pixelData[pixelIndex]];
 
       // add a pixel
       imagedata.data[imageIndex] = color[0];
@@ -86,8 +86,22 @@ function render() {
   }
 
   ctx.putImageData(imagedata, 0, 0);
+
+  // Also do stuff that are not rendering, but still need to be done frequently
+  // the render is actually very fast, so lets use that extra time to speed up the physics
+
+  let i = 0;
+  do {
+    tileCheckIndex++;
+    if (tileCheckIndex >= subTiles.length) {
+      tileCheckIndex = 0;
+    }
+    subTiles[tileCheckIndex].active = !isSubtileStatic(tileCheckIndex);
+  } while (++i < 5);
+
   requestAnimationFrame(render);
 }
+
 
 function updatePixels(pixelArr) {
   for (let i = 0; i < pixelArr.length; i++) {
@@ -158,16 +172,8 @@ function serializePixel(pixel) {
 }
 
 function doPhysics() {
-  let i = 0;
-  do {
-    tileCheckIndex++;
-    if (tileCheckIndex >= subTiles.length) {
-      tileCheckIndex = 0;
-    }
-    subTiles[tileCheckIndex].active = !isSubtileStatic(tileCheckIndex);
-  } while (++i < 5);
 
-  // for each subtile fro mend to start
+  // for each subtile from end to start
   for (let subtileIndex = subTiles.length - 1; subtileIndex >= 0; subtileIndex--) {
     const subtile = subTiles[subtileIndex];
     if (!subtile.active) continue;
@@ -188,10 +194,11 @@ function doPhysics() {
 
 function processPixel(x, y) {
   const index = coordsToIndex(x, y);
-  const data = desserialziePixel(index);
 
+  if(pixelData[index] === 0) return;
+
+  const data = desserialziePixel(index);
   switch (data.type) {
-    case Particles.Void: { break; }
     case Particles.Sand: { sand(x, y, index, data); break; }
   }
 }
@@ -204,8 +211,7 @@ function isInBounds(x, y) {
 function isEmpty(x, y) {
   if (!isInBounds(x, y)) return false;
   const index = coordsToIndex(x, y);
-  const data = desserialziePixel(index);
-  return data.type === Particles.Void;
+  return pixelData[index] === 0;
 }
 
 function setPixel(index, data) {

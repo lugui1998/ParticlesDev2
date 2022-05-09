@@ -148,15 +148,18 @@ class Sandbox {
         }
 
         if (!inUpdate && !this.pauseState) {
+            // calculate FPS
             const timeNow = performance.now();
             const lastFrameTime = timeNow - this.physicsStartTime;
             this.lastFramesTimes.push(lastFrameTime);
 
-            if(this.lastFramesTimes.length > 10) {
+            if (this.lastFramesTimes.length > 10) {
                 this.lastFramesTimes.shift();
             }
 
             this.physicsStartTime = timeNow;
+
+            // Send update message to workers
             for (const tile of this.tiles) {
                 tile.update();
             }
@@ -170,19 +173,15 @@ class Sandbox {
             return;
         }
 
-        const pixelLine = this.traceLine(startPos, endPos);
+        let pixelLine = this.traceLine(startPos, endPos);
         if (this.brushSize <= 0) {
             this.paintPixels(pixelLine);
+            return;
         }
 
-        const effectedPixels = new Set();
         for (const pixel of pixelLine) {
-            const pixelsInRadius = this.getPixelsInRadius(pixel, this.brushSize);
-            for (const pixelInRadius of pixelsInRadius) {
-                effectedPixels.add(pixelInRadius);
-            }
+            this.paintPixels(this.getPixelsInSquare(pixel, this.brushSize));
         }
-        this.paintPixels(effectedPixels);
     }
 
     paintPixels(effectedPixels) {
@@ -201,7 +200,7 @@ class Sandbox {
             pixelChunks[tileIndex] = pixelChunks[tileIndex] || [];
             pixelChunks[tileIndex].push([pixel.x, pixel.y]);
         }
-        
+
         for (const tile of this.tiles) {
             if (pixelChunks[tile.tileIndex] !== undefined) {
                 tile.updatePixels(pixelChunks[tile.tileIndex]);
@@ -219,13 +218,23 @@ class Sandbox {
         const yInc = dy / steps;
         let x = startPos.x;
         let y = startPos.y;
+
+        let brushStep = 0;
         for (let i = 0; i < steps; i++) {
+            // skip if the step pis smaller than the brush size
+            // don't skip if it is the last step
+            if (i >0 && brushStep < this.brushSize - 1 && i !== steps - 1) {
+                continue;
+            }
+
             points.push({
                 x: Math.floor(x),
                 y: Math.floor(y),
             });
             x += xInc;
             y += yInc;
+
+
         }
         return points;
     }
@@ -269,11 +278,11 @@ class Sandbox {
 
     }
 
-    getBrushSize(){
+    getBrushSize() {
         return this.brushSize;
     }
 
-    setBrushSize(size){
+    setBrushSize(size) {
         this.brushSize = size > 10 ? 10 : size;
         this.brushSize = this.brushSize < 0 ? 0 : this.brushSize;
     }
@@ -307,14 +316,14 @@ class Sandbox {
         this.pauseState = !this.pauseState;
     }
 
-    clear(){
-        for(let i = 0; i < this.grid.length; i++){
+    clear() {
+        for (let i = 0; i < this.grid.length; i++) {
             this.grid[i] = 0;
         }
     }
 
     terminate() {
-        for(const tile of this.tiles){
+        for (const tile of this.tiles) {
             tile.terminate();
         }
     }
