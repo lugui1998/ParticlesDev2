@@ -283,7 +283,7 @@ class Sandbox {
     }
 
     setBrushSize(size) {
-        this.brushSize = size > 10 ? 10 : size;
+        this.brushSize = size > 5 ? 5 : size;
         this.brushSize = this.brushSize < 0 ? 0 : this.brushSize;
     }
 

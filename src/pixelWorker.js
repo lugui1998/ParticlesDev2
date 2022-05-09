@@ -13,7 +13,7 @@ let screenHeight;
 let width;
 let height;
 
-const subTileSize = 50;
+const subTileSize = 100;
 let subTiles = [];
 let tileCheckIndex = 0;
 
@@ -70,7 +70,7 @@ function render() {
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
       const pixelIndex = coordsToIndex(x, y);
-      // const pixeldData = desserialziePixel(pixelIndex);
+
       // Map the index to the actual position without offset
       const imageIndex = (x - startX + (y - startY) * width) * 4;
 
@@ -144,33 +144,6 @@ function coordsToIndex(x, y) {
   return (x + y * screenWidth) * pixelDataSize;
 }
 
-
-function desserialziePixel(index) {
-  // Retrives the data about the pixel from the shared buffer
-  // This is done by calculating the index of the pixel in the shared buffer
-  // then getting the next pixelDataSize values
-
-  const data = pixelData.slice(index, index + pixelDataSize);
-
-  return {
-    type: data[0],
-    info1: data[1],
-    info2: data[2],
-    info3: data[3],
-  };
-
-}
-
-// Pixel Object to Array
-function serializePixel(pixel) {
-  return [
-    pixel.type,
-    pixel.info1,
-    pixel.info2,
-    pixel.info3,
-  ];
-}
-
 function doPhysics() {
 
   // for each subtile from end to start
@@ -195,11 +168,9 @@ function doPhysics() {
 function processPixel(x, y) {
   const index = coordsToIndex(x, y);
 
-  if(pixelData[index] === 0) return;
-
-  const data = desserialziePixel(index);
-  switch (data.type) {
-    case Particles.Sand: { sand(x, y, index, data); break; }
+  switch (pixelData[index]) {
+    case Particles.Void: { return; }
+    case Particles.Sand: { sand(x, y); break; }
   }
 }
 
@@ -214,91 +185,45 @@ function isEmpty(x, y) {
   return pixelData[index] === 0;
 }
 
-function setPixel(index, data) {
-  let i = 0;
-  do {
-    pixelData[index] = data[0];
-  } while (++i < pixelDataSize);
-}
-
-function deletePixel(index) {
-  pixelData[index] = Particles.Void;
-  let i = 1;
-  do {
-    pixelData[index] = 0;
-  } while (++i < pixelDataSize);
-}
-
 /* Particle Physics */
 
-function sand(x, y, index, data) {
-  const maxKinecticEnergy = 2;
-  const maxDownMovement = 4;
+function sand(x, y) {
+  const index = coordsToIndex(x, y);
 
-  let kinecticEnergy = data.info1;
-  let stepX = x;
-  let stepY = y;
-  let setpIndex = index;
-  let setepData = data;
-
-  // Check if the pixel bellow is empty.
-  // if it is, check the next one up to maxMovesDown
-  // stop when the target space is not empty or the maxMovesDown is reached
-
-  let i = 0;
-  let targetX = x;
-  let targetY = y;
-  let targetIndex;
-  let targetData = null;
-  do {
-    targetY++;
-    targetIndex = coordsToIndex(targetX, targetY);
-    targetData = desserialziePixel(targetIndex);
-    if (isEmpty(targetX, targetY)) {
-      stepX = targetX;
-      stepY = targetY;
-      setpIndex = targetIndex;
-    } else {
-      break;
-    }
-  } while (++i <= maxDownMovement);
-
-  kinecticEnergy = kinecticEnergy < maxKinecticEnergy ? kinecticEnergy + 1 : maxKinecticEnergy;
-
-  // now, the particle may move sideways if it is able to.
-  // chooses a random direction: 1, 0, -1
-  const randomDirection = Math.floor(Math.random() * 3) - 1;
-  let sideMoves = 0;
-  while (++sideMoves <= kinecticEnergy) {
-    targetX += randomDirection;
-    targetIndex = coordsToIndex(targetX, targetY);
-    targetData = desserialziePixel(targetIndex);
-    kinecticEnergy--;
-    if (isEmpty(targetX, targetY)) {
-      stepX = targetX;
-      stepY = targetY;
-      setpIndex = targetIndex;
-    } else {
-      break;
-    }
+  // check if the pixel below is empty
+  if (isEmpty(x, y + 1)) {
+    pixelData[index + 1] = 1;
+    movePixel(x, y, x, y + 1);
+    return;
   }
 
+  if (pixelData[index + 1] == 0) return;
 
-  // movements finished
-  setepData.info1 = kinecticEnergy;
-
-  // move the particle to the target position
-  setPixel(setpIndex, serializePixel(setepData));
-  if (stepX !== x || stepY !== y) {
-    deletePixel(index);
+  // chooses left or right
+  const direction = Math.random() > 0.5 ? 1 : -1;
+  if(isEmpty(x + direction, y)) {
+    movePixel(x, y, x + direction, y);
   }
 
-  // when the particle enters a subtile it may set it to active
-  const subtileIndex = coordsToSubTileIndex(stepX, stepY);
+  pixelData[index + 1] = 1;
+
+}
+
+function movePixel(prevX, prevY, x, y) {
+  // Transfers the data starting at the previous index to the new index
+  const prevPos = coordsToIndex(prevX, prevY);
+  const newPos = coordsToIndex(x, y);
+  for (let i = 0; i < pixelDataSize; i++) {
+    pixelData[newPos + i] = pixelData[prevPos + i];
+
+    // also deletes the data at the old position
+    pixelData[prevPos + i] = 0;
+  }
+
+  const subtileIndex = coordsToSubTileIndex(x, y);
   if (subtileIndex !== undefined && subtileIndex !== -1) {
     subTiles[subtileIndex].active = true;
   }
-
 }
 
 
