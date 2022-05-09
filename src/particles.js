@@ -26,7 +26,7 @@ setTimeout(() => {
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
 // Calculate the amount of tiles
-let tilesWidth = Math.floor(columns / 50);
+let tilesWidth = Math.floor(columns / 200);
 let tilesHeight = Math.ceil(rows / 1200);
 
 const tileGridSize = [tilesWidth, tilesHeight];
