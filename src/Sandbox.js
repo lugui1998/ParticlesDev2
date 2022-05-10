@@ -1,6 +1,6 @@
 const Tile = require('./Tile');
 
-const { Particles, Colors, } = require('./Particles/Particles');
+const { Particles, Names} = require('./Particles/Particles');
 
 const pixelDataSize = 4;
 
@@ -260,8 +260,16 @@ class Sandbox {
         return pixels;
     }
 
-    selectBrushParticle() {
+    setBrushParticle(particleId) {
+        this.brushParticle = particleId;
+    }
 
+    getBrushPàrticleId() {
+        return this.brushParticle;
+    }
+
+    getBrushParticleName() {
+        return Names[this.brushParticle];
     }
 
     getBrushSize() {

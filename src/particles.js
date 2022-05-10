@@ -4,7 +4,7 @@ if (typeof SharedArrayBuffer === 'undefined') {
     throw new Error('SharedArrayBuffer is not supported');
 }
 
-const { Names, Colors, } = require('./Particles/Particles');
+const { Names, Colors, Particles } = require('./Particles/Particles');
 const Sandbox = require('./Sandbox');
 
 const sandboxArea = document.getElementById('sandboxArea');
@@ -71,7 +71,12 @@ for (let i = 0; i < Names.length; i++) {
     element.classList.add('element');
     element.textContent = name;
     element.style.color = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+
     elements.appendChild(element);
+
+    element.onclick = () => {
+        sandbox.setBrushParticle(Particles.getId(name));
+    };
 }
 
 

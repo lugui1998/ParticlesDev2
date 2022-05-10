@@ -1,6 +1,10 @@
 class Particles {
     static Void = 0;
     static Sand = 1;
+
+    static getId(name) {
+        return Particles[name];
+    }
 }
 
 
