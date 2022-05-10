@@ -82,7 +82,7 @@ for (let i = 0; i < Names.length; i++) {
 
 function update() {
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
-    brush.textContent = `Brush:${sandbox.getBrushSize()}`
+    brush.textContent = `Brush:${sandbox.brushSize.toString().padStart(2, '0')}`;
     sandbox.update();
     window.requestAnimationFrame(update);
 }
