@@ -55,13 +55,6 @@ class Tile {
 
     }
 
-    updatePixels(pixelArr) {
-        this.worker.postMessage({
-            type: 'updatePixels',
-            data: pixelArr
-        });
-    }
-
     terminate() {
         this.worker.terminate();
     }

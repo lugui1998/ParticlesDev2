@@ -97,9 +97,6 @@ class Sandbox {
             x: e.clientX,
             y: e.clientY,
         };
-        if (this.mousePressed) {
-            this.brushStroke(this.mousePrevPos, this.mousePos);
-        }
     }
 
     HandleOnMouseDown(e) {
@@ -153,7 +150,7 @@ class Sandbox {
             const lastFrameTime = timeNow - this.physicsStartTime;
             this.lastFramesTimes.push(lastFrameTime);
 
-            if (this.lastFramesTimes.length > 10) {
+            if (this.lastFramesTimes.length > 100) {
                 this.lastFramesTimes.shift();
             }
 
@@ -180,7 +177,7 @@ class Sandbox {
         }
 
         for (const pixel of pixelLine) {
-            this.paintPixels(this.getPixelsInSquare(pixel, this.brushSize));
+            this.paintPixels(this.getPixelsInRadius(pixel, this.brushSize));
         }
     }
 
@@ -191,20 +188,9 @@ class Sandbox {
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
                 continue;
             }
-
+ 
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
             this.grid[index] = this.brushParticle;
-
-            // find the chunk that the pixel belongs to
-            const tileIndex = this.pixelCoordsToTileIndex(pixel.x, pixel.y);
-            pixelChunks[tileIndex] = pixelChunks[tileIndex] || [];
-            pixelChunks[tileIndex].push([pixel.x, pixel.y]);
-        }
-
-        for (const tile of this.tiles) {
-            if (pixelChunks[tile.tileIndex] !== undefined) {
-                tile.updatePixels(pixelChunks[tile.tileIndex]);
-            }
         }
     }
 
@@ -283,7 +269,7 @@ class Sandbox {
     }
 
     setBrushSize(size) {
-        this.brushSize = size > 5 ? 5 : size;
+        this.brushSize = size > 30 ? 30 : size;
         this.brushSize = this.brushSize < 0 ? 0 : this.brushSize;
     }
 

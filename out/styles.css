@@ -38,7 +38,7 @@ main {
 footer {
     display: grid;
     grid-template-columns: 60% 40%;
-    background-color: #2196F3;
+    background-color: #0a6ab6;
     font-family: prstart;
     font-size: 12px;
     padding: 1px;
@@ -54,18 +54,19 @@ footer {
 
 #elements {
     display: grid;
-    grid-template-columns: auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto auto;
-    background-color: #2196F3;
-    padding: 1px;
+    grid-template-columns: auto auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
 }
 
-#elements>div {
+.element {
+    display: inline-block;
     cursor: pointer;
     text-align: left;
-    font-size: 15px;
+    font-size: 12px;
 }
 
 .properties {
+    color: #FFFFFF;
     display: grid;
     grid-template-columns: auto auto auto;
 }
@@ -100,10 +101,4 @@ footer {
 .propDecrement {
     cursor: pointer;
     margin-top: 4px;
-}
-
-#elements>div {
-    cursor: pointer;
-    text-align: left;
-    font-size: 15px;
 }

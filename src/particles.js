@@ -3,8 +3,8 @@ if (typeof SharedArrayBuffer === 'undefined') {
     alert('This page can only run on modern browsers.');
     throw new Error('SharedArrayBuffer is not supported');
 }
-    
 
+const { Names, Colors, } = require('./Particles/Particles');
 const Sandbox = require('./Sandbox');
 
 const sandboxArea = document.getElementById('sandboxArea');
@@ -15,19 +15,13 @@ const brush = document.getElementById('brushTool');
 const brushMinus = document.getElementById('brushMinus');
 const brushPlus = document.getElementById('brushPlus');
 const clear = document.getElementById('clear');
-
-let lagWarning = true;
-// enable in 5 seconds
-setTimeout(() => {
-    lagWarning = false;
-}, 5000);
-
+const elements = document.getElementById('elements');
 
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
 // Calculate the amount of tiles
-let tilesWidth = Math.floor(columns / 200);
-let tilesHeight = Math.ceil(rows / 1200);
+let tilesWidth = Math.floor(columns / 400);
+let tilesHeight = Math.ceil(rows / 1400);
 
 const tileGridSize = [tilesWidth, tilesHeight];
 let sandbox = new Sandbox(sandboxArea, tileGridSize);
@@ -69,30 +63,35 @@ clear.addEventListener('click', () => {
     sandbox.clear();
 });
 
+// Add elements to the menu
+for (let i = 0; i < Names.length; i++) {
+    const name = Names[i];
+    const color = Colors[i];
+    const element = document.createElement('div');
+    element.classList.add('element');
+    element.textContent = name;
+    element.style.color = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+    elements.appendChild(element);
+}
+
 
 function update() {
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
     brush.textContent = `Brush:${sandbox.getBrushSize()}`
+    sandbox.update();
     window.requestAnimationFrame(update);
 }
 window.requestAnimationFrame(update);
 
 setInterval(() => {
-    // not using requestAnimationFrame because it doesn't update while the browser is paused
-    sandbox.update();
-}, 10);
+    if (sandbox.getPhysicsFPS() < 60) {
+        sandbox.update();
+    }
+}, 1);
 
 // Update the menu on less improtant stuff
 setInterval(async () => {
     pause.textContent = sandbox.getPauseState() ? 'Play' : 'Pause';
     fps.textContent = `${sandbox.getPauseState() == false ? Math.floor(sandbox.getPhysicsFPS()) : '00'}`;
-
-    // Warn the user if the physics is lagging
-    if (sandbox.getPhysicsFPS() < 5 && !lagWarning && (rows > 1000 || columns > 1000)) {
-        lagWarning = true;
-        sandbox.mousePressed = false;
-        alert('Physics is lagging. Consider running on a smaller window.');
-    }
-
 
 }, 100);

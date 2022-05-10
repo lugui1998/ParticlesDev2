@@ -13,10 +13,6 @@ let screenHeight;
 let width;
 let height;
 
-const subTileSize = 100;
-let subTiles = [];
-let tileCheckIndex = 0;
-
 onmessage = function (e) {
   handleMessage(e.data);
 }
@@ -41,25 +37,6 @@ function initPixelGrid(data) {
   pixelDataSize = data.pixelDataSize;
   screenWidth = data.screenWidth;
   screenHeight = data.screenHeight;
-
-  // Subtiles are defined by its startX and startY, and its endX and endY
-  // a tile may be considered inactive under certain conditions
-  // if the tile is inactive, physics on it will be skipped
-  // some times, subtiles can have an ending offset that results in parts of it being outside the worker
-  // this os not a problem because there are no pixels to process in those parts
-
-  // Create subtiles
-  for (let y = startY; y < endY; y += subTileSize) {
-    for (let x = startX; x < endX; x += subTileSize) {
-      subTiles.push({
-        startX: x,
-        startY: y,
-        endX: Math.min(x + subTileSize, endX),
-        endY: Math.min(y + subTileSize, endY),
-        active: false,
-      });
-    }
-  }
 
   ctx = canvas.getContext('2d', { alpha: false });
   requestAnimationFrame(render);
@@ -90,52 +67,10 @@ function render() {
   // Also do stuff that are not rendering, but still need to be done frequently
   // the render is actually very fast, so lets use that extra time to speed up the physics
 
-  let i = 0;
-  do {
-    tileCheckIndex++;
-    if (tileCheckIndex >= subTiles.length) {
-      tileCheckIndex = 0;
-    }
-    subTiles[tileCheckIndex].active = !isSubtileStatic(tileCheckIndex);
-  } while (++i < 5);
-
   requestAnimationFrame(render);
 }
 
 
-function updatePixels(pixelArr) {
-  for (let i = 0; i < pixelArr.length; i++) {
-    const subtileIndex = coordsToSubTileIndex(pixelArr[i][0], pixelArr[i][1]);
-    if (subtileIndex !== undefined && subtileIndex !== -1) {
-      subTiles[subtileIndex].active = true;
-    }
-  }
-}
-
-function isSubtileStatic(index) {
-  let differentMaterial = false;
-  let lastMaterial = null;
-  const subtile = subTiles[index];
-  for (let y = subtile.startY; y < subtile.endY; y++) {
-    for (let x = subtile.startX; x < subtile.endX; x++) {
-      const pixelIndex = coordsToIndex(x, y);
-      differentMaterial |= lastMaterial !== null && lastMaterial != pixelData[pixelIndex];
-
-      if (differentMaterial) {
-        return false;
-      }
-      lastMaterial = pixelData[pixelIndex];
-    }
-  }
-  return true;
-}
-
-function coordsToSubTileIndex(x, y) {
-  // find the subtile that contains the pixel
-  return subTiles.findIndex(subtile => {
-    return subtile.startX <= x && subtile.endX > x && subtile.startY <= y && subtile.endY > y;
-  })
-}
 
 function coordsToIndex(x, y) {
   // On a array of size screenWidth * screenHeight
@@ -146,16 +81,10 @@ function coordsToIndex(x, y) {
 
 function doPhysics() {
 
-  // for each subtile from end to start
-  for (let subtileIndex = subTiles.length - 1; subtileIndex >= 0; subtileIndex--) {
-    const subtile = subTiles[subtileIndex];
-    if (!subtile.active) continue;
-
-    // for each pixel in the subtile from bottom to top
-    for (let y = subtile.endY - 1; y >= subtile.startY; y--) {
-      for (let x = subtile.startX; x < subtile.endX; x++) {
-        processPixel(x, y);
-      }
+  // for each pixel of the Tile from end to start
+  for (let y = endY - 1; y >= startY; y--) {
+    for (let x = endX - 1; x >= startX; x--) {
+      processPixel(x, y);
     }
   }
 
@@ -197,15 +126,16 @@ function sand(x, y) {
     return;
   }
 
-  if (pixelData[index + 1] == 0) return;
+  if (pixelData[index + 1] <= 0) return;
 
   // chooses left or right
   const direction = Math.random() > 0.5 ? 1 : -1;
-  if(isEmpty(x + direction, y)) {
+  if (isEmpty(x + direction, y)) {
+    pixelData[index + 1] = 0;
     movePixel(x, y, x + direction, y);
   }
 
-  pixelData[index + 1] = 1;
+  pixelData[index + 1] = 0;
 
 }
 
@@ -218,11 +148,6 @@ function movePixel(prevX, prevY, x, y) {
 
     // also deletes the data at the old position
     pixelData[prevPos + i] = 0;
-  }
-
-  const subtileIndex = coordsToSubTileIndex(x, y);
-  if (subtileIndex !== undefined && subtileIndex !== -1) {
-    subTiles[subtileIndex].active = true;
   }
 }
 
