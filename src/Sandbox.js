@@ -1,6 +1,6 @@
 const Tile = require('./Tile');
 
-const { Particles, Names} = require('./Particles/Particles');
+const { Particles, Names } = require('./Particles/Particles');
 
 const pixelDataSize = 4;
 
@@ -92,11 +92,18 @@ class Sandbox {
     }
 
     HandleOnMouseMove(e) {
-        this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
+        this.mousePrevPos = {
+            x: this.mousePos.x,
+            y: this.mousePos.y,
+        }
         this.mousePos = {
             x: e.clientX,
             y: e.clientY,
         };
+
+        if (this.mousePressed) {
+            this.brushStroke(this.mousePos, this.mousePrevPos);
+        }
     }
 
     HandleOnMouseDown(e) {
@@ -135,7 +142,7 @@ class Sandbox {
 
     update() {
         if (this.mousePressed) {
-            this.brushStroke(this.mousePrevPos, this.mousePos);
+            this.brushStroke(this.mousePos, this.mousePrevPos);
         }
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
 
@@ -165,11 +172,11 @@ class Sandbox {
 
     /* Brush */
     brushStroke(startPos, endPos) {
+        console.log(`Brush stroke from [${startPos.x} ${startPos.y}] to [${endPos.x} ${endPos.y}]`);
         if (startPos.x === endPos.x && startPos.y === endPos.y) {
             this.paintPixels(this.getPixelsInRadius(endPos, this.brushSize));
             return;
         }
-
         let pixelLine = this.traceLine(startPos, endPos);
         if (this.brushSize <= 0) {
             this.paintPixels(pixelLine);
@@ -188,7 +195,7 @@ class Sandbox {
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
                 continue;
             }
- 
+
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
             this.grid[index] = this.brushParticle;
         }
@@ -205,13 +212,7 @@ class Sandbox {
         let x = startPos.x;
         let y = startPos.y;
 
-        let brushStep = 0;
         for (let i = 0; i < steps; i++) {
-            // skip if the step pis smaller than the brush size
-            // don't skip if it is the last step
-            if (i >0 && brushStep < this.brushSize - 1 && i !== steps - 1) {
-                continue;
-            }
 
             points.push({
                 x: Math.floor(x),
