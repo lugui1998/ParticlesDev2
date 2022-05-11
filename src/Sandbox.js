@@ -24,7 +24,7 @@ class Sandbox {
 
     grid = null;
 
-    brushParticle = Particles.Sand;
+    brushParticle = Particles.Dust;
     brushSize = 1;
 
     canvas;
