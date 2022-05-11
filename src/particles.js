@@ -43,7 +43,7 @@ document.addEventListener('keydown', event => {
 // on scroll, update the brush size
 sandboxArea.addEventListener('wheel', (event) => {
     const currentBrushSize = sandbox.brushSize;
-    const newBrushSize = currentBrushSize + Math.round((event.deltaY / 100)) * -1;
+    const newBrushSize = event.deltaY > 0 ? currentBrushSize + 1 : currentBrushSize -1;
     sandbox.setBrushSize(newBrushSize);
 });
 
