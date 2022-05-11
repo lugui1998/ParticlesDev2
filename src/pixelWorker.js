@@ -1,4 +1,4 @@
-const { Colors, Particles, Density } = require('./Particles/Particles');
+const { Colors, Particles, Density, Liquids } = require('./Particles/Particles');
 const Random = require('./Utils/Random');
 
 let pixelData;
@@ -207,6 +207,13 @@ function sand(x, y) {
   if (isEmpty(x + direction, y)) {
     pixelData[index + 1] = 0;
     movePixel(x, y, x + direction, y);
+  } else {
+    // Sand can move sideways even on  liquids
+    // check if the pixel in the desired spot is liquid
+    if (Particles.isLiquid(pixelData[coordsToIndex(x + direction, y)])) {
+      // it is a liquid, in that case swap instead of moving
+      swapPixel(x, y, x + direction, y);
+    }
   }
 
   pixelData[index + 1] = 0;

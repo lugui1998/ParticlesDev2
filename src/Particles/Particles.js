@@ -7,8 +7,13 @@ class Particles {
     static getId(name) {
         return Particles[name];
     }
-}
 
+    static isLiquid(id) {
+        return [
+            Particles.Water,
+        ].includes(id);
+    }
+}
 
 const Names = []
 Names[Particles.Void] = 'Void';
@@ -22,7 +27,6 @@ Colors[Particles.Void] = [0, 0, 0];
 Colors[Particles.Sand] = [242, 189, 107];
 Colors[Particles.Stone] = [128, 128, 128];
 Colors[Particles.Water] = [0, 0, 255];
-
 
 const Density = [];
 Density[Particles.Void] = 0;

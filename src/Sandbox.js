@@ -265,7 +265,7 @@ class Sandbox {
         this.brushParticle = particleId;
     }
 
-    getBrushPàrticleId() {
+    getBrushParticleId() {
         return this.brushParticle;
     }
 
