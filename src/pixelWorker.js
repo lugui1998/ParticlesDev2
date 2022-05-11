@@ -51,7 +51,7 @@ function initPixelGrid(data) {
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(Random.number() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
 }
@@ -118,6 +118,8 @@ function processPixel(x, y) {
     case Particles.Sand: { sand(x, y); break; }
     case Particles.Stone: { stone(x, y); break; }
     case Particles.Water: { water(x, y); break; }
+    case Particles.Metal: { metal(x, y); break; }
+    case Particles.Rust: { rust(x, y); break; }
   }
 }
 
@@ -134,13 +136,49 @@ function isEmpty(x, y) {
 
 /* Particle Physics */
 
+function rust(x, y) {
+  // acts like sand
+  sand(x, y);
+}
+
+function metal(x, y) {
+  // metal does not move.
+  // if a particle of metal is in contact with water, it has a probability of becoming rust.
+  // if a particle of metal is in contact with rust, it has a smaller probability of becoming rust
+
+  // check the adjacent pixels
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+  const index = coordsToIndex(x, y);
+
+  for (let [targetX, targetY] of adjacent) {
+    if (!isInBounds(targetX, targetY)) continue;
+    const targetIndex = coordsToIndex(targetX, targetY);
+    if (pixelData[targetIndex] === Particles.Water) {
+      if (Random.number() < 0.01) {
+        pixelData[index] = Particles.Rust;
+        return;
+      }
+    } else if (pixelData[targetIndex] === Particles.Rust) {
+      if (Random.number() < 0.001) {
+        pixelData[index] = Particles.Rust;
+        return;
+      }
+    }
+  }
+}
+
 function water(x, y) {
   if (!isEmpty(x, y - 1) && isInBounds(x, y - 1)) {
     const aboveIndex = coordsToIndex(x, y - 1);
 
     if (Density[pixelData[aboveIndex]] > Density[Particles.Water]) {
       // probaiblity of sinking based on density difference
-      if (Math.random() < Density[pixelData[aboveIndex]]) {
+      if (Random.number() < Density[pixelData[aboveIndex]]) {
         swapPixel(x, y, x, y - 1);
         return;
       }
@@ -219,7 +257,6 @@ function sand(x, y) {
   pixelData[index + 1] = 0;
 
 }
-
 
 
 function movePixel(prevX, prevY, x, y) {

@@ -13,6 +13,11 @@ class Random {
         return Math.random() > 0.5 ? 1 : -1;
     }
 
+    static number() {
+        // just a wrapper for Math.random()
+        return Math.random();
+    }
+
 }
 
 module.exports = Random;

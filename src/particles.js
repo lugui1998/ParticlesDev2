@@ -68,6 +68,9 @@ clear.addEventListener('click', () => {
 
 // Add elements to the menu
 for (let i = 0; i < Names.length; i++) {
+    if(Particles.isHidden(i)) {
+        continue;
+    }
     const name = Names[i];
     const color = Colors[i];
     const element = document.createElement('div');
