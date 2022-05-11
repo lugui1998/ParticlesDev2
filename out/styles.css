@@ -111,3 +111,8 @@ footer {
     cursor: pointer;
     margin-top: 4px;
 }
+
+#sauce>a {
+    color: #FFFFFF;
+    text-decoration: none;
+}

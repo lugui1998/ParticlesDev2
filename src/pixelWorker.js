@@ -134,7 +134,7 @@ function isInBounds(x, y) {
 function isEmpty(x, y) {
   if (!isInBounds(x, y)) return false;
   const index = coordsToIndex(x, y);
-  return pixelData[index] === 0;
+  return pixelData[index] === Particles.Air || pixelData[index] === Particles.Fire;
 }
 
 /* Particle Physics */
@@ -157,7 +157,7 @@ function fire(x, y) {
   let i = 0;
   let canMove = true;
   do {
-    if (isEmpty(x, y - 1)) {
+    if (isInBounds(x, y - 1) && pixelData[coordsToIndex(x, y - 1)] === Particles.Air) {
       movePixel(x, y, x, --y);
       index = coordsToIndex(x, y);
       pixelData[index + 1] = 1;
@@ -291,6 +291,11 @@ function metal(x, y) {
         pixelData[index] = Particles.Rust;
         return;
       }
+    } else if (pixelData[targetIndex] === Particles.Lava) {
+      if (Random.number() < 0.01) {
+        pixelData[index] = Particles.Lava;
+        return;
+      }
     }
   }
 }
@@ -386,7 +391,7 @@ function dust(x, y) {
       )
     ) {
       // random chance
-      if (Random.number() < 0.4) {
+      if (Random.number() < 0.75) {
         // set the dust to fire
         pixelData[index] = Particles.Fire;
         return;
