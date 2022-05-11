@@ -192,19 +192,19 @@ function water(x, y) {
     } else {
       canMove = false;
     }
-  } while (++i <= 2 && canMove);
+  } while (++i < 1 && canMove);
 
-  const index = coordsToIndex(x, y);
-  if (canMove) {
-    pixelData[index + 1] = Random.direction();
-  }
+  const direction = Random.direction();
 
-  if (isEmpty(x + pixelData[index + 1], y)) {
-    movePixel(x, y, x + pixelData[index + 1], y);
-    return;
-  } else {
-    pixelData[index + 1] = Random.direction();
-  }
+  i = 0;
+  do {
+    if (isEmpty(x + direction, y)) {
+      movePixel(x, y, x + direction, y);
+      x += direction;
+    } else {
+      return;
+    }
+  } while (++i < 1);
 
 }
 
