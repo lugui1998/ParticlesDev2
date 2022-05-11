@@ -7,6 +7,7 @@ class Particles {
     static Rust = 5;
     static Lava = 6;
     static Void = 7;
+    static Fire = 8;
 
 
     static getId(name) {
@@ -36,6 +37,7 @@ Names[Particles.Metal] = 'Metal';
 Names[Particles.Rust] = 'Rust';
 Names[Particles.Lava] = 'Lava';
 Names[Particles.Void] = 'Void';
+Names[Particles.Fire] = 'Fire';
 
 
 const Colors = [];
@@ -44,9 +46,10 @@ Colors[Particles.Dust] = [242, 189, 107];
 Colors[Particles.Stone] = [128, 128, 128];
 Colors[Particles.Water] = [64, 64, 255];
 Colors[Particles.Metal] = [64, 64, 64];
-Colors[Particles.Rust] = [255, 64, 64];
+Colors[Particles.Rust] = [121, 79, 58];
 Colors[Particles.Lava] = [255, 102, 51];
 Colors[Particles.Void] = [0, 0, 0];
+Colors[Particles.Fire] = [255, 50, 50];
 
 
 const Density = [];

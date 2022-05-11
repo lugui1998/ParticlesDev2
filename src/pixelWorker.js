@@ -122,6 +122,7 @@ function processPixel(x, y) {
     case Particles.Rust: { rust(x, y); break; }
     case Particles.Lava: { lava(x, y); break; }
     case Particles.Void: { voidParticle(x, y); break; }
+    case Particles.Fire: { fire(x, y); break; }
   }
 }
 
@@ -137,6 +138,46 @@ function isEmpty(x, y) {
 }
 
 /* Particle Physics */
+
+function fire(x, y) {
+  let index = coordsToIndex(x, y);
+  if (pixelData[index + 1]) {
+    pixelData[index + 1] = 0;
+    return;
+  }
+
+  // probability to expire
+  if (Random.number() > 0.95) {
+    removePixel(x, y);
+    return;
+  }
+
+  // attempts to go up
+
+  let i = 0;
+  let canMove = true;
+  do {
+    if (isEmpty(x, y - 1)) {
+      movePixel(x, y, x, --y);
+      index = coordsToIndex(x, y);
+      pixelData[index + 1] = 1;
+    }
+  } while (++i < 2 && canMove);
+
+  const direction = Random.number() > 0.5 ? 1 : -1;
+  if (isEmpty(x + direction, y)) {
+    movePixel(x, y, x + direction, y);
+    index = coordsToIndex(x + direction, y);
+    pixelData[index + 1] = 1;
+  } else if (isEmpty(x - direction, y)) {
+    movePixel(x, y, x - direction, y);
+    index = coordsToIndex(x - direction, y);
+    pixelData[index + 1] = 1;
+  } else {
+    canMove = false;
+  }
+
+}
 
 function voidParticle(x, y) {
   // removes any particle that touches it and is not void
@@ -327,6 +368,31 @@ function stone(x, y) {
 
 function dust(x, y) {
   const index = coordsToIndex(x, y);
+
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+
+  for (let [targetX, targetY] of adjacent) {
+    // check if it is touching lava or fire
+    if (
+      isInBounds(targetX, targetY) &&
+      (
+        pixelData[coordsToIndex(targetX, targetY)] === Particles.Lava ||
+        pixelData[coordsToIndex(targetX, targetY)] === Particles.Fire
+      )
+    ) {
+      // random chance
+      if (Random.number() < 0.4) {
+        // set the dust to fire
+        pixelData[index] = Particles.Fire;
+        return;
+      }
+    }
+  }
 
   let i = 0;
   let canMove = true;
