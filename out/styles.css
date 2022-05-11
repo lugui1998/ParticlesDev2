@@ -63,6 +63,15 @@ footer {
     cursor: pointer;
     text-align: left;
     font-size: 12px;
+    
+}
+
+.selected {
+    -webkit-text-stroke: 0.5px #555555;
+}
+
+.unSelected {
+    -webkit-text-stroke: 0.5px #000000;
 }
 
 .properties {

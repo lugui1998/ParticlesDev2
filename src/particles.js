@@ -69,14 +69,31 @@ for (let i = 0; i < Names.length; i++) {
     const color = Colors[i];
     const element = document.createElement('div');
     element.classList.add('element');
+    if (sandbox.getBrushParticleId() === i) {
+        element.classList.add('selected');
+    } else {
+        element.classList.add('unSelected');
+    }
     element.textContent = name;
     element.style.color = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
 
     elements.appendChild(element);
 
+
     element.onclick = () => {
+        // unselect all elements
+        for (let j = 0; j < elements.children.length; j++) {
+            elements.children[j].classList.remove('selected');
+            elements.children[j].classList.add('unSelected');
+        }
+
+
+        // add the class "selected" to the element
+        element.classList.add('selected');
+        element.classList.remove('unSelected');
         sandbox.setBrushParticle(Particles.getId(name));
     };
+
 }
 
 
@@ -90,6 +107,7 @@ window.requestAnimationFrame(update);
 
 setInterval(() => {
     if (sandbox.getPhysicsFPS() < 60) {
+        // call physics update more times to speed it up since animation frames are currently too slow
         sandbox.update();
     }
 }, 1);
