@@ -1,4 +1,5 @@
-const { Colors, Particles } = require('./Particles/Particles');
+const { Colors, Particles, Density } = require('./Particles/Particles');
+const Random = require('./Utils/Random');
 
 let pixelData;
 let canvas;
@@ -9,6 +10,8 @@ let endY;
 let pixelDataSize;
 let screenWidth;
 let screenHeight;
+
+let lineOrder = [];
 
 let width;
 let height;
@@ -38,8 +41,19 @@ function initPixelGrid(data) {
   screenWidth = data.screenWidth;
   screenHeight = data.screenHeight;
 
+  for (let x = startX; x < endX; x++) {
+    lineOrder.push(x);
+  }
+
   ctx = canvas.getContext('2d', { alpha: false });
   requestAnimationFrame(render);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
 }
 
 function render() {
@@ -66,6 +80,7 @@ function render() {
 
   // Also do stuff that are not rendering, but still need to be done frequently
   // the render is actually very fast, so lets use that extra time to speed up the physics
+  shuffleArray(lineOrder);
 
   requestAnimationFrame(render);
 }
@@ -83,7 +98,8 @@ function doPhysics() {
 
   // for each pixel of the Tile from end to start
   for (let y = endY - 1; y >= startY; y--) {
-    for (let x = endX - 1; x >= startX; x--) {
+    // for (let x = endX - 1; x >= startX; x--) {
+    for (let x of lineOrder) {
       processPixel(x, y);
     }
   }
@@ -100,6 +116,8 @@ function processPixel(x, y) {
   switch (pixelData[index]) {
     case Particles.Void: { return; }
     case Particles.Sand: { sand(x, y); break; }
+    case Particles.Stone: { stone(x, y); break; }
+    case Particles.Water: { water(x, y); break; }
   }
 }
 
@@ -116,20 +134,76 @@ function isEmpty(x, y) {
 
 /* Particle Physics */
 
+function water(x, y) {
+  if (!isEmpty(x, y - 1) && isInBounds(x, y - 1)) {
+    const aboveIndex = coordsToIndex(x, y - 1);
+
+    if (Density[pixelData[aboveIndex]] > Density[Particles.Water]) {
+      // probaiblity of sinking based on density difference
+      if (Math.random() < Density[pixelData[aboveIndex]]) {
+        swapPixel(x, y, x, y - 1);
+        return;
+      }
+    }
+  }
+  let i = 0;
+  let canMove = true;
+  do {
+    if (isEmpty(x, y + 1)) {
+      movePixel(x, y, x, ++y);
+    } else {
+      canMove = false;
+    }
+  } while (++i <= 2 && canMove);
+
+  const index = coordsToIndex(x, y);
+  if (canMove) {
+    pixelData[index + 1] = Random.direction();
+  }
+
+  if (isEmpty(x + pixelData[index + 1], y)) {
+    movePixel(x, y, x + pixelData[index + 1], y);
+    return;
+  } else {
+    pixelData[index + 1] = Random.direction();
+  }
+
+}
+
+function stone(x, y) {
+  // check if the pixel below is empty
+  let i = 0;
+  let canMove = true;
+  do {
+    if (isEmpty(x, y + 1)) {
+      movePixel(x, y, x, ++y);
+    } else {
+      canMove = false;
+    }
+  } while (++i <= 3 && canMove);
+}
+
 function sand(x, y) {
   const index = coordsToIndex(x, y);
 
-  // check if the pixel below is empty
-  if (isEmpty(x, y + 1)) {
-    pixelData[index + 1] = 1;
-    movePixel(x, y, x, y + 1);
+  let i = 0;
+  let canMove = true;
+  do {
+    if (isEmpty(x, y + 1)) {
+      pixelData[index + 1] = 1;
+      movePixel(x, y, x, ++y);
+    } else {
+      canMove = false;
+    }
+  } while (++i <= 2 && canMove);
+  if (canMove) {
     return;
   }
 
   if (pixelData[index + 1] <= 0) return;
 
   // chooses left or right
-  const direction = Math.random() > 0.5 ? 1 : -1;
+  const direction = Random.direction();
   if (isEmpty(x + direction, y)) {
     pixelData[index + 1] = 0;
     movePixel(x, y, x + direction, y);
@@ -138,6 +212,8 @@ function sand(x, y) {
   pixelData[index + 1] = 0;
 
 }
+
+
 
 function movePixel(prevX, prevY, x, y) {
   // Transfers the data starting at the previous index to the new index
@@ -148,6 +224,17 @@ function movePixel(prevX, prevY, x, y) {
 
     // also deletes the data at the old position
     pixelData[prevPos + i] = 0;
+  }
+}
+
+function swapPixel(x, y, x2, y2) {
+  const index1 = coordsToIndex(x, y);
+  const index2 = coordsToIndex(x2, y2);
+  const temp = [];
+  for (let i = 0; i < pixelDataSize; i++) {
+    temp[i] = pixelData[index1 + i];
+    pixelData[index1 + i] = pixelData[index2 + i];
+    pixelData[index2 + i] = temp[i];
   }
 }
 

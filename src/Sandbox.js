@@ -188,7 +188,6 @@ class Sandbox {
     }
 
     paintPixels(effectedPixels) {
-        const pixelChunks = [];
         for (const pixel of effectedPixels) {
             // check if the pixel is out of bounds
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
@@ -196,7 +195,9 @@ class Sandbox {
             }
 
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
-            this.grid[index] = this.brushParticle;
+            if(this.grid[index] === Particles.Void || this.brushParticle === Particles.Void) {
+                this.grid[index] = this.brushParticle;
+            }
         }
     }
 
