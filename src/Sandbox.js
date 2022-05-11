@@ -328,7 +328,11 @@ class Sandbox {
     }
 
     getParticleIdUnderMouse() {
-        return this.grid[this.pixelCoordsToPixelIndex(this.mousePos.x, this.mousePos.y)];
+        const index = this.pixelCoordsToPixelIndex(this.mousePos.x, this.mousePos.y);
+        if(index < 0 || index >= this.grid.length || this.grid[index] === undefined) {
+            return Particles.Air;
+        }
+        return this.grid[index];
     }
 
     getCursosPos() {
