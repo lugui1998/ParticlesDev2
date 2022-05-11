@@ -172,7 +172,6 @@ class Sandbox {
 
     /* Brush */
     brushStroke(startPos, endPos) {
-        console.log(`Brush stroke from [${startPos.x} ${startPos.y}] to [${endPos.x} ${endPos.y}]`);
         if (startPos.x === endPos.x && startPos.y === endPos.y) {
             this.paintPixels(this.getPixelsInRadius(endPos, this.brushSize));
             return;
