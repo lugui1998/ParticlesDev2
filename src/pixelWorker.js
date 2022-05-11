@@ -114,12 +114,14 @@ function processPixel(x, y) {
   const index = coordsToIndex(x, y);
 
   switch (pixelData[index]) {
-    case Particles.Void: { return; }
-    case Particles.Sand: { sand(x, y); break; }
+    case Particles.Air: { return; }
+    case Particles.Dust: { dust(x, y); break; }
     case Particles.Stone: { stone(x, y); break; }
     case Particles.Water: { water(x, y); break; }
     case Particles.Metal: { metal(x, y); break; }
     case Particles.Rust: { rust(x, y); break; }
+    case Particles.Lava: { lava(x, y); break; }
+    case Particles.Void: { voidParticle(x, y); break; }
   }
 }
 
@@ -136,9 +138,89 @@ function isEmpty(x, y) {
 
 /* Particle Physics */
 
+function voidParticle(x, y) {
+  // removes any particle that touches it and is not void
+
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+
+  // check if it is touching water
+  for (let [targetX, targetY] of adjacent) {
+    if (!isEmpty(targetX, targetY) && pixelData[coordsToIndex(targetX, targetY)] !== Particles.Void) {
+      removePixel(targetX, targetY);
+    }
+  }
+
+}
+
+function lava(x, y) {
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+
+  // check if it is touching water
+  const index = coordsToIndex(x, y);
+
+  for (let [targetX, targetY] of adjacent) {
+    if (isInBounds(targetX, targetY) && pixelData[coordsToIndex(targetX, targetY)] === Particles.Water) {
+      // remove the water
+      removePixel(targetX, targetY);
+
+      // set the lava to stone
+      pixelData[index] = Particles.Stone;
+    }
+  }
+
+  if (!isEmpty(x, y - 1) && isInBounds(x, y - 1)) {
+    const aboveIndex = coordsToIndex(x, y - 1);
+
+    if (Density[pixelData[aboveIndex]] > Density[Particles.Lava]) {
+      // probaiblity of sinking based on density difference
+      if (Random.number() < Density[pixelData[aboveIndex]] - Density[Particles.Lava]) {
+        swapPixel(x, y, x, y - 1);
+        return;
+      }
+    }
+  }
+  let i = 0;
+  let canMove = true;
+  do {
+    if (isEmpty(x, y + 1)) {
+      movePixel(x, y, x, ++y);
+    } else {
+      canMove = false;
+    }
+  } while (++i < 2 && canMove);
+
+  if (canMove) {
+    return;
+  }
+
+  let direction = Random.direction();
+
+  i = 0;
+  do {
+    if (isEmpty(x + direction, y)) {
+      movePixel(x, y, x + direction, y);
+      x += direction;
+    } else {
+      direction *= -1;
+      continue;
+    }
+  } while (++i < 3);
+
+}
+
 function rust(x, y) {
-  // acts like sand
-  sand(x, y);
+  // acts like dust
+  dust(x, y);
 }
 
 function metal(x, y) {
@@ -178,7 +260,7 @@ function water(x, y) {
 
     if (Density[pixelData[aboveIndex]] > Density[Particles.Water]) {
       // probaiblity of sinking based on density difference
-      if (Random.number() < Density[pixelData[aboveIndex]]) {
+      if (Random.number() < Density[pixelData[aboveIndex]] - Density[Particles.Water]) {
         swapPixel(x, y, x, y - 1);
         return;
       }
@@ -192,9 +274,9 @@ function water(x, y) {
     } else {
       canMove = false;
     }
-  } while (++i < 1 && canMove);
+  } while (++i < 2 && canMove);
 
-  const direction = Random.direction();
+  let direction = Random.direction();
 
   i = 0;
   do {
@@ -202,13 +284,35 @@ function water(x, y) {
       movePixel(x, y, x + direction, y);
       x += direction;
     } else {
-      return;
+      direction *= -1;
+      continue;
     }
-  } while (++i < 1);
+  } while (++i < 3);
 
 }
 
 function stone(x, y) {
+
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+  // if adjacent to lava, it has a chance of becoming lava
+  const index = coordsToIndex(x, y);
+
+  for (let [targetX, targetY] of adjacent) {
+    if (!isInBounds(targetX, targetY)) continue;
+    const targetIndex = coordsToIndex(targetX, targetY);
+    if (pixelData[targetIndex] === Particles.Lava) {
+      if (Random.number() < 0.001) {
+        pixelData[index] = Particles.Lava;
+        return;
+      }
+    }
+  }
+
   // check if the pixel below is empty
   let i = 0;
   let canMove = true;
@@ -221,7 +325,7 @@ function stone(x, y) {
   } while (++i <= 3 && canMove);
 }
 
-function sand(x, y) {
+function dust(x, y) {
   const index = coordsToIndex(x, y);
 
   let i = 0;
@@ -234,9 +338,6 @@ function sand(x, y) {
       canMove = false;
     }
   } while (++i <= 2 && canMove);
-  if (canMove) {
-    return;
-  }
 
   if (pixelData[index + 1] <= 0) return;
 
@@ -246,7 +347,7 @@ function sand(x, y) {
     pixelData[index + 1] = 0;
     movePixel(x, y, x + direction, y);
   } else {
-    // Sand can move sideways even on  liquids
+    // dust can move sideways even on  liquids
     // check if the pixel in the desired spot is liquid
     if (Particles.isLiquid(pixelData[coordsToIndex(x + direction, y)])) {
       // it is a liquid, in that case swap instead of moving
@@ -255,9 +356,14 @@ function sand(x, y) {
   }
 
   pixelData[index + 1] = 0;
-
 }
 
+function removePixel(x, y) {
+  const index = coordsToIndex(x, y);
+  for (let i = 0; i < pixelDataSize; i++) {
+    pixelData[index + i] = 0;
+  }
+}
 
 function movePixel(prevX, prevY, x, y) {
   // Transfers the data starting at the previous index to the new index

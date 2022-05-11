@@ -118,7 +118,7 @@ window.requestAnimationFrame(update);
 
 setInterval(() => {
     // cap frames per second
-    if (sandbox.getPhysicsFPS() < 75) {
+    if (sandbox.getPhysicsFPS() < 65) {
         sandbox.update();
     }
 }, 1);
@@ -126,7 +126,7 @@ setInterval(() => {
 setInterval(() => {
     // min FPS
     sandbox.update();
-}, 50);
+}, 20);
 
 // Update the menu on less improtant stuff
 setInterval(async () => {

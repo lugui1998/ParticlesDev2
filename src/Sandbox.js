@@ -195,7 +195,7 @@ class Sandbox {
             }
 
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
-            if(this.grid[index] === Particles.Void || this.brushParticle === Particles.Void) {
+            if(this.grid[index] === Particles.Air || this.brushParticle === Particles.Air || this.brushParticle === Particles.Void) {
                 this.grid[index] = this.brushParticle;
             }
         }

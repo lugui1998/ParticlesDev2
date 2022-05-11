@@ -1,10 +1,12 @@
 class Particles {
-    static Void = 0;
-    static Sand = 1;
+    static Air = 0;
+    static Dust = 1;
     static Stone = 2;
     static Water = 3;
     static Metal = 4;
     static Rust = 5;
+    static Lava = 6;
+    static Void = 7;
 
 
     static getId(name) {
@@ -14,6 +16,7 @@ class Particles {
     static isLiquid(id) {
         return [
             Particles.Water,
+            Particles.Lava,
         ].includes(id);
     }
 
@@ -25,29 +28,34 @@ class Particles {
 }
 
 const Names = []
-Names[Particles.Void] = 'Void';
-Names[Particles.Sand] = 'Sand';
+Names[Particles.Air] = 'Air';
+Names[Particles.Dust] = 'Dust';
 Names[Particles.Stone] = 'Stone';
 Names[Particles.Water] = 'Water';
 Names[Particles.Metal] = 'Metal';
 Names[Particles.Rust] = 'Rust';
+Names[Particles.Lava] = 'Lava';
+Names[Particles.Void] = 'Void';
 
 
 const Colors = [];
-Colors[Particles.Void] = [0, 0, 0];
-Colors[Particles.Sand] = [242, 189, 107];
+Colors[Particles.Air] = [20, 20, 20];
+Colors[Particles.Dust] = [242, 189, 107];
 Colors[Particles.Stone] = [128, 128, 128];
 Colors[Particles.Water] = [64, 64, 255];
 Colors[Particles.Metal] = [64, 64, 64];
 Colors[Particles.Rust] = [255, 64, 64];
+Colors[Particles.Lava] = [255, 102, 51];
+Colors[Particles.Void] = [0, 0, 0];
 
 
 const Density = [];
-Density[Particles.Void] = 0;
-Density[Particles.Sand] = 0.5;
-Density[Particles.Stone] = 0.9;
+Density[Particles.Air] = 0;
+Density[Particles.Dust] = 0.4;
+Density[Particles.Stone] = 1.5;
 Density[Particles.Water] = 0.3;
-Density[Particles.Rust] = Density[Particles.Sand];
+Density[Particles.Rust] = Density[Particles.Dust];
+Density[Particles.Lava] = 0.8;
 
 module.exports = {
     Particles,
