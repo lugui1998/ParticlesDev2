@@ -16,6 +16,7 @@ const brushMinus = document.getElementById('brushMinus');
 const brushPlus = document.getElementById('brushPlus');
 const clear = document.getElementById('clear');
 const elements = document.getElementById('elements');
+const particleName = document.getElementById('particleName');
 
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
@@ -39,6 +40,8 @@ document.addEventListener('keydown', event => {
         sandbox.togglePauseState();
     }
 });
+
+
 
 // on scroll, update the brush size
 sandboxArea.addEventListener('wheel', (event) => {
@@ -100,17 +103,27 @@ for (let i = 0; i < Names.length; i++) {
 function update() {
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;
     brush.textContent = `Brush:${sandbox.brushSize.toString().padStart(2, '0')}`;
-    sandbox.update();
+
+    // Particle name display
+    const particleId = sandbox.getParticleIdUnderMouse();
+    particleName.textContent = `${Names[particleId]}`;
+    particleName.style.color = `rgb(${Colors[particleId][0]}, ${Colors[particleId][1]}, ${Colors[particleId][2]})`;
+
     window.requestAnimationFrame(update);
 }
 window.requestAnimationFrame(update);
 
 setInterval(() => {
-    if (sandbox.getPhysicsFPS() < 60) {
-        // call physics update more times to speed it up since animation frames are currently too slow
+    // cap frames per second
+    if (sandbox.getPhysicsFPS() < 75) {
         sandbox.update();
     }
 }, 1);
+
+setInterval(() => {
+    // min FPS
+    sandbox.update();
+}, 50);
 
 // Update the menu on less improtant stuff
 setInterval(async () => {

@@ -299,7 +299,11 @@ class Sandbox {
         for (const time of this.lastFramesTimes) {
             sum += time;
         }
-        return 1000 / (sum / this.lastFramesTimes.length);
+        const fps = 1000 / (sum / this.lastFramesTimes.length);
+        if(isNaN(fps)) {
+            return 0;
+        }
+        return fps;
 
     }
 
@@ -322,6 +326,15 @@ class Sandbox {
             tile.terminate();
         }
     }
+
+    getParticleIdUnderMouse() {
+        return this.grid[this.pixelCoordsToPixelIndex(this.mousePos.x, this.mousePos.y)];
+    }
+
+    getCursosPos() {
+        return this.mousePos;
+    }
+
 
 }
 
