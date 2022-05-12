@@ -1,7 +1,10 @@
-// check if SharedArrayBuffer is supported
-if (typeof SharedArrayBuffer === 'undefined') {
-    alert('This page can only run on modern browsers.');
-    throw new Error('SharedArrayBuffer is not supported');
+// check if support
+if (
+    typeof SharedArrayBuffer === 'undefined' ||
+    !HTMLCanvasElement.prototype.transferControlToOffscreen
+) {
+    alert('This page cannot run on modern browsers.'); // Just to trigger Firefox users
+    throw new Error('Unsupported browser');
 }
 
 const { Names, Colors, Particles } = require('./Particles/Particles');
@@ -68,7 +71,7 @@ clear.addEventListener('click', () => {
 
 // Add elements to the menu
 for (let i = 0; i < Names.length; i++) {
-    if(Particles.isHidden(i)) {
+    if (Particles.isHidden(i)) {
         continue;
     }
     const name = Names[i];
