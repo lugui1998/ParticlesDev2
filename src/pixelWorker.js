@@ -507,9 +507,12 @@ function dust(x, y) {
       pixelData[index + 1] += 2;
       movePixel(x, y, x, ++y);
     } else {
+      pixelData[index + 1]--;
       canMove = false;
     }
   } while (++i <= 2 && canMove);
+
+  pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
 
   if (pixelData[index + 1] <= 0) return;
 
