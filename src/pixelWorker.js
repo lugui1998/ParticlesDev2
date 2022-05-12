@@ -447,11 +447,12 @@ function dust(x, y) {
 
   for (let [targetX, targetY] of adjacent) {
     // check if it is touching lava or fire
+    const targetIndex = coordsToIndex(targetX, targetY);
     if (
       isInBounds(targetX, targetY) &&
       (
-        pixelData[coordsToIndex(targetX, targetY)] === Particles.Lava ||
-        pixelData[coordsToIndex(targetX, targetY)] === Particles.Fire
+        pixelData[targetIndex] === Particles.Lava ||
+        pixelData[targetIndex] === Particles.Fire
       )
     ) {
       // random chance
@@ -462,13 +463,48 @@ function dust(x, y) {
       }
     }
   }
+  if (pixelData[index + 1] <= 0) { // The particle is settled
+    // count how many of the pixels touching the particle (including diagonals) are dust
+    let count = 0;
+    let i = 0;
+    const adjacentDust = [
+      [x - 1, y], // left
+      [x + 1, y], // right
+      [x, y - 1], // up
+      [x - 1, y - 1], // up left
+      [x + 1, y - 1], // up right
+    ];
+    do {
+      const [targetX, targetY] = adjacentDust[i];
+      if (isInBounds(targetX, targetY)) {
+        const targetIndex = coordsToIndex(targetX, targetY);
+        if (pixelData[targetIndex] === Particles.Dust) {
+          count++;
+        }
+      }
+    } while (++i < adjacentDust.length);
+
+    if (count >= 3) {
+      // if there are 3 or more dust particles touching the particle it doesn't need to move
+        return;
+    }
+  }
 
   let i = 0;
   let canMove = true;
   do {
     if (isEmpty(x, y + 1)) {
-      pixelData[index + 1] = 1;
+      // moving down also gives energy to the dust above
+      const aboveIndex = coordsToIndex(x, y - 1);
+      if (isInBounds(x, y - 1) && pixelData[aboveIndex] === Particles.Dust) {
+        pixelData[aboveIndex + 1]++;
+      }
+
+      pixelData[index + 1]++;
       movePixel(x, y, x, ++y);
+
+
+
     } else {
       canMove = false;
     }
@@ -479,7 +515,6 @@ function dust(x, y) {
   // chooses left or right
   const direction = Random.direction();
   if (isEmpty(x + direction, y)) {
-    pixelData[index + 1] = 0;
     movePixel(x, y, x + direction, y);
   } else {
     // dust can move sideways even on  liquids
@@ -487,10 +522,12 @@ function dust(x, y) {
     if (Particles.isFluid(pixelData[coordsToIndex(x + direction, y)])) {
       // it is a liquid, in that case swap instead of moving
       swapPixel(x, y, x + direction, y);
+    } else {
+      if (!canMove) {
+        pixelData[index + 1]--;
+      }
     }
   }
-
-  pixelData[index + 1] = 0;
 }
 
 function removePixel(x, y) {

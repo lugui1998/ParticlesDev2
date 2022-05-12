@@ -69,7 +69,7 @@ Density[Particles.Steam] = 0.07;
 
 const InitialState = [];
 InitialState[Particles.Air] = [Particles.Air, 0, 0, 0];
-InitialState[Particles.Dust] = [Particles.Dust, 0, 0, 0];
+InitialState[Particles.Dust] = [Particles.Dust, 5, 0, 0];
 InitialState[Particles.Stone] = [Particles.Stone, 0, 0, 0];
 InitialState[Particles.Water] = [Particles.Water, 0, 30, 0];
 InitialState[Particles.Metal] = [Particles.Metal, 0, 0, 0];
