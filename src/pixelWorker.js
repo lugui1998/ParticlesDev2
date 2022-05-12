@@ -489,7 +489,7 @@ function dust(x, y) {
     } while (++i < adjacentDust.length);
 
     if (count >= 4) {
-      // if there are 3 or more dust particles touching the particle it doesn't need to move
+      // if there are 4 or more dust particles touching the particle it doesn't need to move
       return;
     }
   }
