@@ -1,6 +1,6 @@
 const Tile = require('./Tile');
 
-const { Particles, Names } = require('./Particles/Particles');
+const { Particles, Names, InitialState } = require('./Particles/Particles');
 
 const pixelDataSize = 4;
 
@@ -195,8 +195,10 @@ class Sandbox {
             }
 
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
-            if(this.grid[index] === Particles.Air || this.brushParticle === Particles.Air || this.brushParticle === Particles.Void) {
-                this.grid[index] = this.brushParticle;
+            if (this.grid[index] === Particles.Air || this.brushParticle === Particles.Air || this.brushParticle === Particles.Void) {
+                for (let i = 0; i < pixelDataSize ; i++) {
+                    this.grid[index + i] = InitialState[this.brushParticle][i];
+                }
             }
         }
     }
@@ -300,7 +302,7 @@ class Sandbox {
             sum += time;
         }
         const fps = 1000 / (sum / this.lastFramesTimes.length);
-        if(isNaN(fps)) {
+        if (isNaN(fps)) {
             return 0;
         }
         return fps;
@@ -329,7 +331,7 @@ class Sandbox {
 
     getParticleIdUnderMouse() {
         const index = this.pixelCoordsToPixelIndex(this.mousePos.x, this.mousePos.y);
-        if(index < 0 || index >= this.grid.length || this.grid[index] === undefined) {
+        if (index < 0 || index >= this.grid.length || this.grid[index] === undefined) {
             return Particles.Air;
         }
         return this.grid[index];

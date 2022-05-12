@@ -13,6 +13,10 @@ class Random {
         return Math.random() > 0.5 ? 1 : -1;
     }
 
+    static float (min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
     static number() {
         // just a wrapper for Math.random()
         return Math.random();
