@@ -456,7 +456,7 @@ function dust(x, y) {
       )
     ) {
       // random chance
-      if (Random.number() < 0.75) {
+      if (Random.number() < 0.5) {
         // set the dust to fire
         pixelData[index] = Particles.Fire;
         return;
@@ -473,6 +473,10 @@ function dust(x, y) {
       [x, y - 1], // up
       [x - 1, y - 1], // up left
       [x + 1, y - 1], // up right
+      [x, y + 1], // down
+      [x + 1, y + 1], // down left
+      [x - 1, y + 1], // down right
+      
     ];
     do {
       const [targetX, targetY] = adjacentDust[i];
@@ -484,9 +488,9 @@ function dust(x, y) {
       }
     } while (++i < adjacentDust.length);
 
-    if (count >= 3) {
+    if (count >= 4) {
       // if there are 3 or more dust particles touching the particle it doesn't need to move
-        return;
+      return;
     }
   }
 
@@ -500,11 +504,8 @@ function dust(x, y) {
         pixelData[aboveIndex + 1]++;
       }
 
-      pixelData[index + 1]++;
+      pixelData[index + 1] += 2;
       movePixel(x, y, x, ++y);
-
-
-
     } else {
       canMove = false;
     }
