@@ -26,6 +26,7 @@ class Particles {
     static isHidden(id) {
         return [
             Particles.Rust,
+            Particles.Steam,
         ].includes(id);
     }
 }
