@@ -183,7 +183,7 @@ function steam(x, y) {
   let index = coordsToIndex(x, y);
 
   // random chance
-  if (Random.number() < 0.01) {
+  if (Random.number() < 0.05) {
     pixelData[index + 2]--;
   }
 
