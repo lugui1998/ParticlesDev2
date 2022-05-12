@@ -58,7 +58,7 @@ Colors[Particles.Steam] = [204, 204, 204];
 
 
 const Density = [];
-Density[Particles.Air] = 0;
+Density[Particles.Air] = 0.05;
 Density[Particles.Dust] = 0.4;
 Density[Particles.Stone] = 0.8;
 Density[Particles.Water] = 0.1;

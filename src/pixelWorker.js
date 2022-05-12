@@ -183,7 +183,7 @@ function steam(x, y) {
   let index = coordsToIndex(x, y);
 
   // random chance
-  if (Random.number() < 0.05) {
+  if (Random.number() < 0.01) {
     pixelData[index + 2]--;
   }
 
@@ -193,30 +193,22 @@ function steam(x, y) {
     return;
   }
 
-  let i = 0;
-  let canMove = true;
-  do {
-    if (isInBounds(x, y - 1) && pixelData[coordsToIndex(x, y - 1)] === Particles.Air) {
-      movePixel(x, y, x, --y);
-      index = coordsToIndex(x, y);
-      pixelData[index + 1] = 1;
-    }
-  } while (++i < 1 && canMove);
-
-
   const direction = Random.number() > 0.5 ? 1 : -1;
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
       movePixel(x, y, x + direction, y);
-      index = coordsToIndex(x + direction, y);
-      pixelData[index + 1] = 1;
-    } else if (isEmpty(x - direction, y)) {
-      movePixel(x, y, x - direction, y);
-      index = coordsToIndex(x - direction, y);
-      pixelData[index + 1] = 1;
+      x += direction;
+      index = coordsToIndex(x, y);
     }
-  } while (++i < 1 || (i < 3 && !canMove));
+  } while (++i < 1);
+
+  // random chance
+  if (Random.number() < 0.3) {
+    if (isEmpty(x, y - 1)) {
+      movePixel(x, y, x, --y);
+    }
+  }
 
 }
 
