@@ -131,7 +131,7 @@ function update() {
     brush1.style.top = `${selectedParticle1.offsetTop}px`;
 
     // update fps
-    fps.textContent = `FPS:${sandbox.getPhysicsFPS()}`;
+    fps.textContent = `FPS:${Math.floor(Math.round(sandbox.getPhysicsFPS()))}`;
     window.requestAnimationFrame(update);
 }
 
