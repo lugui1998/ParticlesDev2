@@ -1,6 +1,7 @@
 const Tile = require('./Tile');
 
 const { Particles, Names, InitialState } = require('./Particles/Particles');
+const QuickBits = require('./Utils/QuickBits');
 
 const pixelDataSize = 4;
 
@@ -95,6 +96,10 @@ class Sandbox {
     }
 
     HandleOnMouseMove(e) {
+        const buttons = QuickBits.toBitArr(e.buttons);
+        this.leftMousePressed = buttons[0];
+        this.rightMousePressed = buttons[1];
+        
         this.mousePrevPos = {
             x: this.mousePos.x,
             y: this.mousePos.y,
@@ -110,28 +115,23 @@ class Sandbox {
     }
 
     HandleOnMouseDown(e) {
-        if (e.which == 1) {
-            this.leftMousePressed = true;
-        } else if (e.which == 3) {
-            this.rightMousePressed = true;
-        }
+        const buttons = QuickBits.toBitArr(e.buttons);
+        this.leftMousePressed = buttons[0];
+        this.rightMousePressed = buttons[1];
+
         this.brushStroke(this.mousePrevPos, this.mousePos);
     }
 
     HandleOnMouseUp(e) {
-        if (e.which == 1) {
-            this.leftMousePressed = false;
-        } else if (e.which == 3) {
-            this.rightMousePressed = false;
-        }
+        const buttons = QuickBits.toBitArr(e.buttons);
+        this.leftMousePressed = buttons[0];
+        this.rightMousePressed = buttons[1];
     }
 
     HandleOnMouseEnter(e) {
-        if (e.which == 1) {
-            this.leftMousePressed = true;
-        } else if (e.which == 3) {
-            this.rightMousePressed = true;
-        }
+        const buttons = QuickBits.toBitArr(e.buttons);
+        this.leftMousePressed = buttons[0];
+        this.rightMousePressed = buttons[1];
 
         // if it is clicked, it should start with a stroke
         if (this.leftMousePressed || this.rightMousePressed) {
@@ -369,8 +369,6 @@ class Sandbox {
     getCursosPos() {
         return this.mousePos;
     }
-
-
 }
 
 module.exports = Sandbox;
