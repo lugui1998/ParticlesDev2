@@ -110,7 +110,6 @@ class Sandbox {
     }
 
     HandleOnMouseDown(e) {
-        console.log(e);
         if (e.which == 1) {
             this.leftMousePressed = true;
         } else if (e.which == 3) {
