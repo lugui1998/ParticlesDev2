@@ -29,7 +29,7 @@ function handleMessage(message) {
 }
 
 function initPixelGrid(data) {
-  pixelData = new Int16Array(data.sharedBuffer);
+  pixelData = new Int8Array(data.sharedBuffer);
   canvas = data.canvas;
   startX = data.startX;
   startY = data.startY;
@@ -57,6 +57,7 @@ function shuffleArray(array) {
 }
 
 function render() {
+
   let imagedata = ctx.createImageData(width, height);
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
@@ -72,14 +73,10 @@ function render() {
       imagedata.data[imageIndex + 1] = color[1];
       imagedata.data[imageIndex + 2] = color[2];
       imagedata.data[imageIndex + 3] = 255;
-
     }
   }
 
   ctx.putImageData(imagedata, 0, 0);
-
-  // Also do stuff that are not rendering, but still need to be done frequently
-  // the render is actually very fast, so lets use that extra time to speed up the physics
 
   requestAnimationFrame(render);
 }
@@ -476,7 +473,7 @@ function dust(x, y) {
       [x, y + 1], // down
       [x + 1, y + 1], // down left
       [x - 1, y + 1], // down right
-      
+
     ];
     do {
       const [targetX, targetY] = adjacentDust[i];
@@ -492,6 +489,14 @@ function dust(x, y) {
       // if there are 4 or more dust particles touching the particle it doesn't need to move
       return;
     }
+  }
+
+  if(pixelData[index + 1] < 0) {
+    pixelData[index + 1] = 0;
+  }
+
+  if(pixelData[index + 1] > 100) {
+    pixelData[index + 1] = 100;
   }
 
   let i = 0;
@@ -512,7 +517,6 @@ function dust(x, y) {
     }
   } while (++i <= 2 && canMove);
 
-  pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
 
   if (pixelData[index + 1] <= 0) return;
 

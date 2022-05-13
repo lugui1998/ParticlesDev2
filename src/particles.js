@@ -11,6 +11,7 @@ const { Names, Colors, Particles } = require('./Particles/Particles');
 const Sandbox = require('./Sandbox');
 
 const sandboxArea = document.getElementById('sandboxArea');
+const menuArea = document.getElementById('menu');
 const coords = document.getElementById('coords');
 const fps = document.getElementById('fps');
 const pause = document.getElementById('pause');
@@ -22,6 +23,7 @@ const elements = document.getElementById('elements');
 const particleName = document.getElementById('particleName');
 const brush0 = document.getElementById('brush0');
 const brush1 = document.getElementById('brush1');
+const save = document.getElementById('save');
 
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
@@ -109,6 +111,36 @@ for (let i = 0; i < Names.length; i++) {
 
 }
 
+save.onclick = async () => {
+    await sandbox.save();
+}
+
+// on drop file
+sandboxArea.ondragover = handleDrag;
+menuArea.ondragover = handleDrag;
+sandboxArea.ondrop = handleDrop;
+menuArea.ondrop = handleDrop;
+
+function handleDrag(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+
+    if (e.dataTransfer.items) {
+        for (let i = 0; i < e.dataTransfer.items.length; i++) {
+            if (e.dataTransfer.items[i].kind === 'file') {
+                const file = e.dataTransfer.items[i].getAsFile();
+                await sandbox.loadFile(file);
+            }
+        }
+    }
+
+
+}
 
 function update() {
     coords.textContent = `${sandbox.mousePos.x} ${sandbox.mousePos.y}`;

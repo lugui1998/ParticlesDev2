@@ -1,9 +1,14 @@
+const { deflate, inflate } = require('deflate-js');
+
 const Tile = require('./Tile');
 
-const { Particles, Names, InitialState } = require('./Particles/Particles');
+const { Particles, Names, InitialState, Colors } = require('./Particles/Particles');
+const Random = require('./Utils/Random');
 const QuickBits = require('./Utils/QuickBits');
 
+
 const pixelDataSize = 4;
+
 
 class Sandbox {
 
@@ -44,8 +49,8 @@ class Sandbox {
         this.sandboxArea = sandboxArea;
 
         // allocate a sahred buffer
-        this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * 2 * pixelDataSize);
-        this.grid = new Int16Array(this.sharedBuffer);
+        this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * pixelDataSize);
+        this.grid = new Int8Array(this.sharedBuffer);
 
         const tileWidth = Math.ceil(this.width / this.tileGridSize[0]);
         const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
@@ -99,7 +104,7 @@ class Sandbox {
         const buttons = QuickBits.toBitArr(e.buttons);
         this.leftMousePressed = buttons[0];
         this.rightMousePressed = buttons[1];
-        
+
         this.mousePrevPos = {
             x: this.mousePos.x,
             y: this.mousePos.y,
@@ -182,6 +187,115 @@ class Sandbox {
             // Send update message to workers
             for (const tile of this.tiles) {
                 tile.update();
+            }
+        }
+    }
+
+    async save() {
+        this.pauseState = true;
+        const image = await this.renderImage();
+        const urlImage = URL.createObjectURL(image);
+
+        const link = document.createElement('a');
+        link.href = urlImage;
+        link.download = `${Random.string(10)}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async renderImage() {
+        const offscreen = new OffscreenCanvas(this.width, this.height);
+        const ctx = offscreen.getContext('2d', { alpha: false });
+
+        let imagedata = ctx.createImageData(this.width, this.height);
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const pixelIndex = this.pixelCoordsToPixelIndex(x, y);
+
+                // Map the index to the actual position without offset
+                const imageIndex = (x + y * this.width) * 4;
+
+                let color = Colors[this.grid[pixelIndex]];
+
+                // add a pixel
+                imagedata.data[imageIndex] = color[0];
+                imagedata.data[imageIndex + 1] = color[1];
+                imagedata.data[imageIndex + 2] = color[2];
+                imagedata.data[imageIndex + 3] = 255;
+
+            }
+        }
+
+        ctx.putImageData(imagedata, 0, 0);
+        const imageBlob = await offscreen.convertToBlob();
+        const imageArrBuffer = await imageBlob.arrayBuffer();
+
+        const metadataStr = `${this.width}-${this.height}`;
+
+        const headerBuffer = Buffer.from(`lugui-pixels-data`);
+        const metadataLength = Buffer.from([metadataStr.length]);
+        const metadata = Buffer.from(metadataStr);
+        const dataBuffer = Buffer.from(this.grid);
+        const imageBuffer = Buffer.from(imageArrBuffer);
+
+        // create a new buffer with the image, header and the grid data
+        const buffer = Buffer.concat([imageBuffer, headerBuffer, metadataLength, metadata, dataBuffer]);
+
+        const blob = new Blob([buffer], { type: 'image/png' });
+        return blob;
+    }
+
+    async loadFile(file) {
+        this.pauseState = true;
+        // get file contents
+        const reader = new FileReader();
+        const fileContent = await new Promise((resolve, reject) => {
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            reader.onerror = (e) => {
+                reject(e);
+            };
+            reader.readAsText(file);
+        });
+
+        const findStr = Buffer.from(`lugui-pixels-data`);
+        // find the data header
+        const index = fileContent.indexOf(findStr);
+        if (index === -1) {
+            console.error(`Invalid file.`);
+            return;
+        }
+        
+        const data = fileContent.substring(index + findStr.length);
+        const gridData = Array.from(Buffer.from(data));
+
+        const metadataLength = gridData.shift();
+        const buffeArr = [];
+        for (let i = 0; i < metadataLength; i++) {
+            buffeArr.push(gridData.shift());
+        }
+        const metadata = Buffer.from(buffeArr).toString();
+        
+        // get width and height
+        const metadataArr = metadata.split('-');
+        const width = parseInt(metadataArr[0]);
+        const height = parseInt(metadataArr[1]);
+
+        this.clear();
+        const maxWidth = Math.min(this.width, width);
+        const maxHeight = Math.min(this.height, height);
+
+        for(let x = 0; x < maxWidth; x++) {
+            for(let y = 0; y < maxHeight; y++) {
+                const index = this.pixelCoordsToPixelIndex(x, y);
+                const filePixelIndex = (x + y * width) * pixelDataSize;
+
+                for(let i = 0; i < pixelDataSize; i++) {
+                    this.grid[index + i] = gridData[filePixelIndex + i];
+                }
+                
             }
         }
     }

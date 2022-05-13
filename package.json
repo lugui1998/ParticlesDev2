@@ -10,6 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "perf_hooks": "^0.0.1"
+    "deflate-js": "^0.2.3"
   }
 }
