@@ -127,7 +127,11 @@ class Sandbox {
     }
 
     HandleOnMouseEnter(e) {
-        this.leftMousePressed = e.buttons > 0 ? true : false;
+        if (e.which == 1) {
+            this.leftMousePressed = true;
+        } else if (e.which == 3) {
+            this.rightMousePressed = true;
+        }
 
         // if it is clicked, it should start with a stroke
         if (this.leftMousePressed || this.rightMousePressed) {
@@ -149,6 +153,7 @@ class Sandbox {
         }
 
         this.leftMousePressed = false;
+        this.rightMousePressed = false;
     }
 
     update() {
