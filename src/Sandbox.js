@@ -18,13 +18,15 @@ class Sandbox {
 
     mousePrevPos = {};
     mousePos = { x: 0, y: 0 };
-    mousePressed = false;
+    leftMousePressed = false;
+    rightMousePressed = false;
 
     sandboxArea = null;
 
     grid = null;
 
-    brushParticle = Particles.Dust;
+    brush0 = Particles.Dust;
+    brush1 = Particles.Air;
     brushSize = 1;
 
     canvas;
@@ -84,6 +86,7 @@ class Sandbox {
         } while (x < this.width);
 
 
+        this.sandboxArea.oncontextmenu = (e) => { e.preventDefault(); };
         this.sandboxArea.onmousemove = this.HandleOnMouseMove.bind(this);
         this.sandboxArea.onmousedown = this.HandleOnMouseDown.bind(this);
         this.sandboxArea.onmouseup = this.HandleOnMouseUp.bind(this);
@@ -101,25 +104,34 @@ class Sandbox {
             y: e.clientY,
         };
 
-        if (this.mousePressed) {
+        if (this.leftMousePressed || this.rightMousePressed) {
             this.brushStroke(this.mousePos, this.mousePrevPos);
         }
     }
 
     HandleOnMouseDown(e) {
-        this.mousePressed = true;
+        console.log(e);
+        if (e.which == 1) {
+            this.leftMousePressed = true;
+        } else if (e.which == 3) {
+            this.rightMousePressed = true;
+        }
         this.brushStroke(this.mousePrevPos, this.mousePos);
     }
 
     HandleOnMouseUp(e) {
-        this.mousePressed = false;
+        if (e.which == 1) {
+            this.leftMousePressed = false;
+        } else if (e.which == 3) {
+            this.rightMousePressed = false;
+        }
     }
 
     HandleOnMouseEnter(e) {
-        this.mousePressed = e.buttons > 0 ? true : false;
+        this.leftMousePressed = e.buttons > 0 ? true : false;
 
         // if it is clicked, it should start with a stroke
-        if (this.mousePressed) {
+        if (this.leftMousePressed || this.rightMousePressed) {
             this.mousePos = {
                 x: e.clientX,
                 y: e.clientY,
@@ -130,18 +142,18 @@ class Sandbox {
 
     HandleOnMouseLeave(e) {
         // If it was clicked, then it should make a stroke before ending the mouse click
-        if (this.mousePressed) {
+        if (this.leftMousePressed || this.rightMousePressed) {
             this.brushStroke(this.mousePos, {
                 x: e.clientX,
                 y: e.clientY,
             });
         }
 
-        this.mousePressed = false;
+        this.leftMousePressed = false;
     }
 
     update() {
-        if (this.mousePressed) {
+        if (this.leftMousePressed || this.rightMousePressed) {
             this.brushStroke(this.mousePos, this.mousePrevPos);
         }
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
@@ -188,16 +200,26 @@ class Sandbox {
     }
 
     paintPixels(effectedPixels) {
+        // get the element based on the current pressed button
+        const brush0ElementState = InitialState[this.brush0];
+        const brush1ElementState = InitialState[this.brush1];
+
         for (const pixel of effectedPixels) {
             // check if the pixel is out of bounds
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
                 continue;
             }
-
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
-            if (this.grid[index] === Particles.Air || this.brushParticle === Particles.Air || this.brushParticle === Particles.Void) {
-                for (let i = 0; i < pixelDataSize ; i++) {
-                    this.grid[index + i] = InitialState[this.brushParticle][i];
+            if (this.grid[index] === Particles.Air || this.brush1 === Particles.Air || this.brush1 === Particles.Void) {
+                let elState;
+                if (this.leftMousePressed && this.rightMousePressed) {
+                    // pick a random one
+                    elState = Math.random() > 0.5 ? brush0ElementState : brush1ElementState;
+                } else {
+                    elState = this.leftMousePressed ? brush0ElementState : brush1ElementState;
+                }
+                for (let i = 0; i < pixelDataSize; i++) {
+                    this.grid[index + i] = elState[i];
                 }
             }
         }
@@ -263,16 +285,19 @@ class Sandbox {
         return pixels;
     }
 
-    setBrushParticle(particleId) {
-        this.brushParticle = particleId;
+    setBrushParticle(brushId, particleId) {
+        switch (brushId) {
+            case 0: this.brush0 = particleId; break;
+            case 1: this.brush1 = particleId; break;
+        }
     }
 
-    getBrushParticleId() {
-        return this.brushParticle;
+    getBrushParticleId(brushId) {
+        return brushId == 0 ? this.brush0 : this.brush1;
     }
 
-    getBrushParticleName() {
-        return Names[this.brushParticle];
+    getBrushParticleName(brushId) {
+        return brushId == 0 ? Names[this.brush0] : Names[this.brush1];
     }
 
     getBrushSize() {

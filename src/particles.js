@@ -20,6 +20,8 @@ const brushPlus = document.getElementById('brushPlus');
 const clear = document.getElementById('clear');
 const elements = document.getElementById('elements');
 const particleName = document.getElementById('particleName');
+const brush0 = document.getElementById('brush0');
+const brush1 = document.getElementById('brush1');
 
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
@@ -77,6 +79,7 @@ for (let i = 0; i < Names.length; i++) {
     const name = Names[i];
     const color = Colors[i];
     const element = document.createElement('div');
+    element.setAttribute('id', `el-${name}`);
     element.classList.add('element');
     if (sandbox.getBrushParticleId() === i) {
         element.classList.add('selected');
@@ -89,18 +92,19 @@ for (let i = 0; i < Names.length; i++) {
     elements.appendChild(element);
 
 
-    element.onclick = () => {
-        // unselect all elements
-        for (let j = 0; j < elements.children.length; j++) {
-            elements.children[j].classList.remove('selected');
-            elements.children[j].classList.add('unSelected');
-        }
-
-
+    element.onclick = (e) => {
         // add the class "selected" to the element
         element.classList.add('selected');
         element.classList.remove('unSelected');
-        sandbox.setBrushParticle(Particles.getId(name));
+        sandbox.setBrushParticle(0, Particles.getId(name));
+    };
+
+    element.oncontextmenu = (e) => {
+        // add the class "selected" to the element
+        element.classList.add('selected');
+        element.classList.remove('unSelected');
+        sandbox.setBrushParticle(1, Particles.getId(name));
+        e.preventDefault();
     };
 
 }
@@ -115,8 +119,22 @@ function update() {
     particleName.textContent = `${Names[particleId]}`;
     particleName.style.color = `rgb(${Colors[particleId][0]}, ${Colors[particleId][1]}, ${Colors[particleId][2]})`;
 
+    // get the selected particle div by the particle name
+    const selectedParticle0 = document.getElementById(`el-${Names[sandbox.getBrushParticleId(0)]}`);
+    const selectedParticle1 = document.getElementById(`el-${Names[sandbox.getBrushParticleId(1)]}`);
+
+    // move the brush1 and brush2 divs to the selected particle
+    brush0.style.left = `${selectedParticle0.offsetLeft - 6}px`;
+    brush0.style.top = `${selectedParticle0.offsetTop}px`;
+
+    brush1.style.left = `${selectedParticle1.offsetLeft - 6}px`;
+    brush1.style.top = `${selectedParticle1.offsetTop}px`;
+
+    // update fps
+    fps.textContent = `FPS:${sandbox.fps}`;
     window.requestAnimationFrame(update);
 }
+
 window.requestAnimationFrame(update);
 
 setInterval(() => {

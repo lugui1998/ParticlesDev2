@@ -53,6 +53,7 @@ footer {
 }
 
 #elements {
+    margin-left: 5px;
     display: grid;
     grid-template-columns: auto auto auto auto auto auto auto auto;
     grid-template-rows: auto auto auto auto auto;
@@ -63,14 +64,6 @@ footer {
     cursor: pointer;
     text-align: left;
     font-size: 12px;
-    
-}
-
-.selected {
-    -webkit-text-stroke: 0.5px #555555;
-}
-
-.unSelected {
     -webkit-text-stroke: 0.5px #000000;
 }
 
@@ -115,4 +108,20 @@ footer {
 #sauce>a {
     color: #FFFFFF;
     text-decoration: none;
+}
+
+.brushIndicator {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+}
+
+#brush0 {
+    background-color: #FF0000;
+    margin-top: 0px;
+}
+
+#brush1 {
+    background-color: #0000FF;
+    margin-top: 6px;
 }
