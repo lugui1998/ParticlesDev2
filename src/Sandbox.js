@@ -1,5 +1,3 @@
-const { deflate, inflate } = require('deflate-js');
-
 const Tile = require('./Tile');
 
 const { Particles, Names, InitialState, Colors } = require('./Particles/Particles');
@@ -49,8 +47,8 @@ class Sandbox {
         this.sandboxArea = sandboxArea;
 
         // allocate a sahred buffer
-        this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * pixelDataSize);
-        this.grid = new Int8Array(this.sharedBuffer);
+        this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * 2 * pixelDataSize);
+        this.grid = new Int16Array(this.sharedBuffer);
 
         const tileWidth = Math.ceil(this.width / this.tileGridSize[0]);
         const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
@@ -231,16 +229,19 @@ class Sandbox {
         const imageBlob = await offscreen.convertToBlob();
         const imageArrBuffer = await imageBlob.arrayBuffer();
 
-        const metadataStr = `${this.width}-${this.height}`;
+        const data = {
+            width: this.width,
+            height: this.height,
+            grid: this.grid.join(','),
+        }
 
-        const headerBuffer = Buffer.from(`lugui-pixels-data`);
-        const metadataLength = Buffer.from([metadataStr.length]);
-        const metadata = Buffer.from(metadataStr);
-        const dataBuffer = Buffer.from(this.grid);
         const imageBuffer = Buffer.from(imageArrBuffer);
+        const headerBuffer = Buffer.from(`lugui-pixels-data`);
+        const dataBuffer = Buffer.from(JSON.stringify(data));
+
 
         // create a new buffer with the image, header and the grid data
-        const buffer = Buffer.concat([imageBuffer, headerBuffer, metadataLength, metadata, dataBuffer]);
+        const buffer = Buffer.concat([imageBuffer, headerBuffer, dataBuffer]);
 
         const blob = new Blob([buffer], { type: 'image/png' });
         return blob;
@@ -267,37 +268,30 @@ class Sandbox {
             console.error(`Invalid file.`);
             return;
         }
-        
-        const data = fileContent.substring(index + findStr.length);
-        const gridData = Array.from(Buffer.from(data));
 
-        const metadataLength = gridData.shift();
-        const buffeArr = [];
-        for (let i = 0; i < metadataLength; i++) {
-            buffeArr.push(gridData.shift());
-        }
-        const metadata = Buffer.from(buffeArr).toString();
-        
-        // get width and height
-        const metadataArr = metadata.split('-');
-        const width = parseInt(metadataArr[0]);
-        const height = parseInt(metadataArr[1]);
+        const data = JSON.parse(fileContent.substring(index + findStr.length));
+
+        const fileWidth = data.width;
+        const fileHeight = data.height;
+        const gridData = data.grid.split(',');
+
+        const maxWidth = Math.min(this.width, data.width);
+        const maxHeight = Math.min(this.height, data.height);
 
         this.clear();
-        const maxWidth = Math.min(this.width, width);
-        const maxHeight = Math.min(this.height, height);
 
-        for(let x = 0; x < maxWidth; x++) {
-            for(let y = 0; y < maxHeight; y++) {
+        for (let x = 0; x < maxWidth; x++) {
+            for (let y = 0; y < maxHeight; y++) {
                 const index = this.pixelCoordsToPixelIndex(x, y);
-                const filePixelIndex = (x + y * width) * pixelDataSize;
+                const filePixelIndex = (x + y * fileWidth) * pixelDataSize;
 
-                for(let i = 0; i < pixelDataSize; i++) {
-                    this.grid[index + i] = gridData[filePixelIndex + i];
+                for (let i = 0; i < pixelDataSize; i++) {
+                    this.grid[index + i] = parseInt(gridData[filePixelIndex + i]);
                 }
-                
+
             }
         }
+        console.log(this.grid.join(' '));
     }
 
     /* Brush */
@@ -328,15 +322,15 @@ class Sandbox {
                 continue;
             }
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
-            if (this.grid[index] === Particles.Air || this.brush1 === Particles.Air || this.brush1 === Particles.Void) {
-                let elState;
-                if (this.leftMousePressed && this.rightMousePressed) {
-                    // pick a random one
-                    elState = Math.random() > 0.5 ? brush0ElementState : brush1ElementState;
-                } else {
-                    elState = this.leftMousePressed ? brush0ElementState : brush1ElementState;
-                }
-                for (let i = 0; i < pixelDataSize; i++) {
+            let elState;
+            if (this.leftMousePressed && this.rightMousePressed) {
+                // pick a random one
+                elState = Math.random() > 0.5 ? brush0ElementState : brush1ElementState;
+            } else {
+                elState = this.leftMousePressed ? brush0ElementState : brush1ElementState;
+            }
+            for (let i = 0; i < pixelDataSize; i++) {
+                if (this.grid[index + i] === Particles.Air || elState[0] === Particles.Air || elState[0] === Particles.Void) {
                     this.grid[index + i] = elState[i];
                 }
             }

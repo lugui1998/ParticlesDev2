@@ -29,7 +29,7 @@ function handleMessage(message) {
 }
 
 function initPixelGrid(data) {
-  pixelData = new Int8Array(data.sharedBuffer);
+  pixelData = new Int16Array(data.sharedBuffer);
   canvas = data.canvas;
   startX = data.startX;
   startY = data.startY;
@@ -61,18 +61,22 @@ function render() {
   let imagedata = ctx.createImageData(width, height);
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
-      const pixelIndex = coordsToIndex(x, y);
+      try {
+        const pixelIndex = coordsToIndex(x, y);
 
-      // Map the index to the actual position without offset
-      const imageIndex = (x - startX + (y - startY) * width) * 4;
+        // Map the index to the actual position without offset
+        const imageIndex = (x - startX + (y - startY) * width) * 4;
 
-      let color = Colors[pixelData[pixelIndex]];
+        let color = Colors[pixelData[pixelIndex]];
 
-      // add a pixel
-      imagedata.data[imageIndex] = color[0];
-      imagedata.data[imageIndex + 1] = color[1];
-      imagedata.data[imageIndex + 2] = color[2];
-      imagedata.data[imageIndex + 3] = 255;
+        // add a pixel
+        imagedata.data[imageIndex] = color[0];
+        imagedata.data[imageIndex + 1] = color[1];
+        imagedata.data[imageIndex + 2] = color[2];
+        imagedata.data[imageIndex + 3] = 255;
+      } catch (e) {
+
+      }
     }
   }
 
@@ -435,6 +439,9 @@ function stone(x, y) {
 function dust(x, y) {
   const index = coordsToIndex(x, y);
 
+  pixelData[index + 1] = pixelData[index + 1] > 100 ? 100 : pixelData[index + 1];
+  pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
+
   const adjacent = [
     [x - 1, y],
     [x + 1, y],
@@ -491,11 +498,11 @@ function dust(x, y) {
     }
   }
 
-  if(pixelData[index + 1] < 0) {
+  if (pixelData[index + 1] < 0) {
     pixelData[index + 1] = 0;
   }
 
-  if(pixelData[index + 1] > 100) {
+  if (pixelData[index + 1] > 100) {
     pixelData[index + 1] = 100;
   }
 
