@@ -10,5 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "deflate-js": "^0.2.3"
   }
 }

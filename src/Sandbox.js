@@ -1,3 +1,5 @@
+const {deflate, inflate} = require('deflate-js');
+
 const Tile = require('./Tile');
 
 const { Particles, Names, InitialState, Colors } = require('./Particles/Particles');
@@ -229,19 +231,54 @@ class Sandbox {
         const imageBlob = await offscreen.convertToBlob();
         const imageArrBuffer = await imageBlob.arrayBuffer();
 
-        const data = {
+        const metadata = {
             width: this.width,
             height: this.height,
-            grid: this.grid.join(','),
         }
 
-        const imageBuffer = Buffer.from(imageArrBuffer);
-        const headerBuffer = Buffer.from(`lugui-pixels-data`);
-        const dataBuffer = Buffer.from(JSON.stringify(data));
+        const data = new Int16Array(this.grid);
+        const compressedData = deflate(data);
 
+        const data8 = new Uint8Array(compressedData.length * 2);
+        for (let i = 0; i < compressedData.length; i++) {
+            data8[i * 2] = compressedData[i] & 0xff;
+            data8[i * 2 + 1] = compressedData[i] >> 8;
+        }
+
+        const metadataStr = JSON.stringify(metadata);
+        const metadataBuffer = Buffer.from(metadataStr);
+
+        const imageBuffer = Buffer.from(imageArrBuffer);
+        const dataBuffer = Buffer.from(data8);
+
+        const footerBuffer = Buffer.from(`lugui-pixels-magic`);
+
+        let length = dataBuffer.length;
+        let usedLength = Uint32Array.of(length).byteLength;
+        let padding = 4 - usedLength;
+        const dataBufferLength = [];
+        for (let i = 0; i < 4; i++) {
+            if (i < padding) {
+                dataBufferLength.push(0x00);
+            } else {
+                dataBufferLength.push(length >> (i * 8));
+            }
+        }
+
+        length = metadataStr.length;
+        usedLength = Uint32Array.of(length).byteLength;
+        padding = 4 - usedLength;
+        const metadataBufferLength = [];
+        for (let i = 0; i < 4; i++) {
+            if (i < padding) {
+                metadataBufferLength.push(0x00);
+            } else {
+                metadataBufferLength.push(length >> (i * 8));
+            }
+        }
 
         // create a new buffer with the image, header and the grid data
-        const buffer = Buffer.concat([imageBuffer, headerBuffer, dataBuffer]);
+        const buffer = Buffer.concat([imageBuffer, dataBuffer, Buffer.from(dataBufferLength), metadataBuffer, Buffer.from(metadataBufferLength), footerBuffer]);
 
         const blob = new Blob([buffer], { type: 'image/png' });
         return blob;
@@ -258,40 +295,55 @@ class Sandbox {
             reader.onerror = (e) => {
                 reject(e);
             };
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         });
 
-        const findStr = Buffer.from(`lugui-pixels-data`);
-        // find the data header
-        const index = fileContent.indexOf(findStr);
-        if (index === -1) {
-            console.error(`Invalid file.`);
-            return;
+        const fileContentBuffer = Buffer.from(fileContent);
+
+        const magicBytes = 'lugui-pixels-magic';
+        const magicBytesLength = magicBytes.length;
+
+        if (fileContentBuffer.length < magicBytesLength) {
+            alert('Invalid save file');
+            return null;
         }
 
-        const data = JSON.parse(fileContent.substring(index + findStr.length));
+        const footer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength);
+        if (footer.toString() !== magicBytes) {
+            alert('Invalid save file');
+            return null;
+        }
 
-        const fileWidth = data.width;
-        const fileHeight = data.height;
-        const gridData = data.grid.split(',');
+        const sizeMetadata = fileContentBuffer.readUInt32LE(fileContentBuffer.length - magicBytesLength - 4);
+        const metadataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata, fileContentBuffer.length - magicBytesLength - 4);
+        const metadataStr = metadataBuffer.toString();
+        const metadata = JSON.parse(metadataStr);
 
-        const maxWidth = Math.min(this.width, data.width);
-        const maxHeight = Math.min(this.height, data.height);
+        const sizeData = fileContentBuffer.readUInt32LE(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4);
+        const dataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4 - sizeData, fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4);
+        const data = new Int16Array(dataBuffer.length / 2);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = dataBuffer[i * 2] | (dataBuffer[i * 2 + 1] << 8);
+        }
+
+        const decompressedData = inflate(data);
+
+        const maxWidth = Math.min(this.width, metadata.width);
+        const maxHeight = Math.min(this.height, metadata.height);
 
         this.clear();
 
         for (let x = 0; x < maxWidth; x++) {
             for (let y = 0; y < maxHeight; y++) {
                 const index = this.pixelCoordsToPixelIndex(x, y);
-                const filePixelIndex = (x + y * fileWidth) * pixelDataSize;
+                const filePixelIndex = (x + y * metadata.width) * pixelDataSize;
 
                 for (let i = 0; i < pixelDataSize; i++) {
-                    this.grid[index + i] = parseInt(gridData[filePixelIndex + i]);
+                    this.grid[index + i] = parseInt(decompressedData[filePixelIndex + i]);
                 }
 
             }
         }
-        console.log(this.grid.join(' '));
     }
 
     /* Brush */
