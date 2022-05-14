@@ -278,7 +278,7 @@ class Sandbox {
         }
 
         // create a new buffer with the image, header and the grid data
-        const buffer = Buffer.concat([imageBuffer, dataBuffer, Buffer.from(dataBufferLength), metadataBuffer, Buffer.from(metadataBufferLength), footerBuffer]);
+        const buffer = Buffer.concat([imageBuffer, dataBuffer, metadataBuffer, Buffer.from(dataBufferLength), Buffer.from(metadataBufferLength), footerBuffer]);
 
         const blob = new Blob([buffer], { type: 'image/png' });
         return blob;
@@ -315,12 +315,19 @@ class Sandbox {
         }
 
         const sizeMetadata = fileContentBuffer.readUInt32LE(fileContentBuffer.length - magicBytesLength - 4);
-        const metadataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata, fileContentBuffer.length - magicBytesLength - 4);
+        const sizeData = fileContentBuffer.readUInt32LE(fileContentBuffer.length - magicBytesLength - 8);
+
+        // check the size
+        if (fileContentBuffer.length < magicBytesLength + sizeMetadata + sizeData + 4) {
+            alert('Invalid save file');
+            return null;
+        }
+
+        const metadataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 8 - sizeMetadata, fileContentBuffer.length - magicBytesLength - 8);
         const metadataStr = metadataBuffer.toString();
         const metadata = JSON.parse(metadataStr);
 
-        const sizeData = fileContentBuffer.readUInt32LE(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4);
-        const dataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4 - sizeData, fileContentBuffer.length - magicBytesLength - 4 - sizeMetadata - 4);
+        const dataBuffer = fileContentBuffer.subarray(fileContentBuffer.length - magicBytesLength - 8 - sizeMetadata - sizeData, fileContentBuffer.length - magicBytesLength - 8 - sizeMetadata);
         const data = new Int16Array(dataBuffer.length / 2);
         for (let i = 0; i < data.length; i++) {
             data[i] = dataBuffer[i * 2] | (dataBuffer[i * 2 + 1] << 8);
