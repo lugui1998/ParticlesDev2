@@ -439,7 +439,7 @@ function stone(x, y) {
 function dust(x, y) {
   const index = coordsToIndex(x, y);
 
-  pixelData[index + 1] = pixelData[index + 1] > 100 ? 100 : pixelData[index + 1];
+  
   pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
 
   const adjacent = [
@@ -498,13 +498,6 @@ function dust(x, y) {
     }
   }
 
-  if (pixelData[index + 1] < 0) {
-    pixelData[index + 1] = 0;
-  }
-
-  if (pixelData[index + 1] > 100) {
-    pixelData[index + 1] = 100;
-  }
 
   let i = 0;
   let canMove = true;
@@ -513,13 +506,15 @@ function dust(x, y) {
       // moving down also gives energy to the dust above
       const aboveIndex = coordsToIndex(x, y - 1);
       if (isInBounds(x, y - 1) && pixelData[aboveIndex] === Particles.Dust) {
-        pixelData[aboveIndex + 1]++;
+        pixelData[aboveIndex + 1] = pixelData[aboveIndex + 1] > 100 ? 100 : pixelData[aboveIndex + 1] + 1;
       }
 
-      pixelData[index + 1] += 2;
+      pixelData[index + 1] = pixelData[index + 1] > 100 ? 100 : pixelData[index + 1] + 2;
+
       movePixel(x, y, x, ++y);
     } else {
       pixelData[index + 1]--;
+      pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1] - 1;
       canMove = false;
     }
   } while (++i <= 2 && canMove);
@@ -539,7 +534,7 @@ function dust(x, y) {
       swapPixel(x, y, x + direction, y);
     } else {
       if (!canMove) {
-        pixelData[index + 1]--;
+        pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1] - 1;
       }
     }
   }
