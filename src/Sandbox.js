@@ -192,7 +192,6 @@ class Sandbox {
     }
 
     async save() {
-        this.pauseState = true;
         const image = await this.renderImage();
         const urlImage = URL.createObjectURL(image);
 
@@ -285,7 +284,6 @@ class Sandbox {
     }
 
     async loadFile(file) {
-        this.pauseState = true;
         // get file contents
         const reader = new FileReader();
         const fileContent = await new Promise((resolve, reject) => {

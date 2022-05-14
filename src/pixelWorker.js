@@ -94,6 +94,14 @@ function coordsToIndex(x, y) {
   return (x + y * screenWidth) * pixelDataSize;
 }
 
+function IndexToCoords(index) {
+  // convert the index to the x and y coordinates
+  return [
+    index % screenWidth,
+    Math.floor(index / (screenWidth * pixelDataSize)),
+  ]
+}
+
 let reverseOrder = false;
 function doPhysics() {
   // for each pixel of the Tile from end to start
@@ -113,20 +121,23 @@ function doPhysics() {
 
 
 function processPixel(x, y) {
-  const index = coordsToIndex(x, y);
+  let index = coordsToIndex(x, y);
 
   if (pixelData[index] === Particles.Air) {
     return;
   }
 
-  handleParticle(index, x, y);
-  handleFluid(index, x, y);
+  [x, y] = handleParticle(index, x, y);
+  handleFluid(coordsToIndex(x, y), x, y);
 }
 
 function handleFluid(index, x, y) {
   const pixelBellow = coordsToIndex(x, y + 1);
   const pixelAbove = coordsToIndex(x, y - 1);
 
+  // debug for water on steam
+
+  
   //  Fluid interactions
   if (!isEmpty(x, y - 1) && Particles.isFluid(pixelData[pixelBellow])) {
     if (shouldSink(index, pixelBellow)) {
@@ -140,17 +151,20 @@ function handleFluid(index, x, y) {
 }
 
 function handleParticle(index, x, y) {
+  let newPos = [x, y];
   switch (pixelData[index]) {
-    case Particles.Dust: { dust(x, y); break; }
-    case Particles.Stone: { stone(x, y); break; }
-    case Particles.Water: { water(x, y); break; }
-    case Particles.Metal: { metal(x, y); break; }
-    case Particles.Rust: { rust(x, y); break; }
-    case Particles.Lava: { lava(x, y); break; }
-    case Particles.Void: { voidParticle(x, y); break; }
-    case Particles.Fire: { fire(x, y); break; }
-    case Particles.Steam: { steam(x, y); break; }
+    case Particles.Dust: { newPos = dust(x, y); break; }
+    case Particles.Stone: { newPos = stone(x, y); break; }
+    case Particles.Water: { newPos = water(x, y); break; }
+    case Particles.Metal: { newPos = metal(x, y); break; }
+    case Particles.Rust: { newPos = rust(x, y); break; }
+    case Particles.Lava: { newPos = lava(x, y); break; }
+    case Particles.Void: { newPos = voidParticle(x, y); break; }
+    case Particles.Fire: { newPos = fire(x, y); break; }
+    case Particles.Steam: { newPos = steam(x, y); break; }
   }
+
+  return newPos;
 }
 
 function isInBounds(x, y) {
@@ -168,7 +182,7 @@ function shouldSink(index, targetIndex) {
   // returns true is the particle should be able to sink on the target
   // Note: just because it is hevyer doesn't mean it will sink on this frame. It just increases the chance
   if (Density[pixelData[index]] > Density[pixelData[targetIndex]]) {
-    return Density[pixelData[index]] > Random.float(0, Density[pixelData[targetIndex]] * 2)
+    return Random.number() < Density[pixelData[index]] - Density[pixelData[targetIndex]];
   }
   return false;
 
@@ -191,7 +205,7 @@ function steam(x, y) {
   if (pixelData[index + 2] <= 50) {
     // turns into water
     pixelData[index] = Particles.Water;
-    return;
+    return [x, y];
   }
 
   const direction = Random.number() > 0.5 ? 1 : -1;
@@ -211,19 +225,21 @@ function steam(x, y) {
     }
   }
 
+  return [x, y];
+
 }
 
 function fire(x, y) {
   let index = coordsToIndex(x, y);
   if (pixelData[index + 1]) {
     pixelData[index + 1] = 0;
-    return;
+    return [x, y];
   }
 
   // probability to expire
   if (Random.number() > 0.95) {
     removePixel(x, y);
-    return;
+    return [x, y];
   }
 
   // attempts to go up
@@ -250,6 +266,8 @@ function fire(x, y) {
   } else {
     canMove = false;
   }
+
+  return [x, y];
 
 }
 
@@ -290,7 +308,7 @@ function lava(x, y) {
       pixelData[index] = Particles.Stone;
       // Heat the water
       pixelData[adjacentIndex + 2] += 100;
-      return;
+      return [x, y];
     }
   }
 
@@ -305,7 +323,7 @@ function lava(x, y) {
   } while (++i < 2 && canMove);
 
   if (canMove) {
-    return;
+    return [x, y];
   }
 
   let direction = Random.direction();
@@ -321,11 +339,13 @@ function lava(x, y) {
     }
   } while (++i < 3);
 
+  return [x, y];
+
 }
 
 function rust(x, y) {
   // acts like dust
-  dust(x, y);
+  return dust(x, y);
 }
 
 function metal(x, y) {
@@ -348,20 +368,21 @@ function metal(x, y) {
     if (pixelData[targetIndex] === Particles.Water) {
       if (Random.number() < 0.01) {
         pixelData[index] = Particles.Rust;
-        return;
+        return [x, y];
       }
     } else if (pixelData[targetIndex] === Particles.Rust) {
       if (Random.number() < 0.001) {
         pixelData[index] = Particles.Rust;
-        return;
+        return [x, y];
       }
     } else if (pixelData[targetIndex] === Particles.Lava) {
       if (Random.number() < 0.01) {
         pixelData[index] = Particles.Lava;
-        return;
+        return [x, y];
       }
     }
   }
+  return [x, y];
 }
 
 function water(x, y) {
@@ -373,7 +394,7 @@ function water(x, y) {
   if (pixelData[index + 2] >= 100) {
     // turn into Steam
     pixelData[index] = Particles.Steam;
-    return;
+    return [x, y];
   }
 
   let i = 0;
@@ -400,6 +421,7 @@ function water(x, y) {
     }
   } while (++i < 3);
 
+  return [x, y];
 }
 
 function stone(x, y) {
@@ -419,7 +441,7 @@ function stone(x, y) {
     if (pixelData[targetIndex] === Particles.Lava) {
       if (Random.number() < 0.001) {
         pixelData[index] = Particles.Lava;
-        return;
+        return [x, y];
       }
     }
   }
@@ -434,12 +456,13 @@ function stone(x, y) {
       canMove = false;
     }
   } while (++i <= 3 && canMove);
+
+  return [x, y];
 }
 
 function dust(x, y) {
   const index = coordsToIndex(x, y);
 
-  
   pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
 
   const adjacent = [
@@ -463,7 +486,7 @@ function dust(x, y) {
       if (Random.number() < 0.5) {
         // set the dust to fire
         pixelData[index] = Particles.Fire;
-        return;
+        return [x, y];
       }
     }
   }
@@ -494,10 +517,9 @@ function dust(x, y) {
 
     if (count >= 4) {
       // if there are 4 or more dust particles touching the particle it doesn't need to move
-      return;
+      return [x, y];
     }
   }
-
 
   let i = 0;
   let canMove = true;
@@ -520,7 +542,7 @@ function dust(x, y) {
   } while (++i <= 2 && canMove);
 
 
-  if (pixelData[index + 1] <= 0) return;
+  if (pixelData[index + 1] <= 0) return [x, y];
 
   // chooses left or right
   const direction = Random.direction();
@@ -538,6 +560,8 @@ function dust(x, y) {
       }
     }
   }
+
+  return [x, y];
 }
 
 function removePixel(x, y) {

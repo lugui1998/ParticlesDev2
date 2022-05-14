@@ -26,7 +26,7 @@ class Particles {
     static isHidden(id) {
         return [
             Particles.Rust,
-            Particles.Steam,
+            // Particles.Steam,
         ].includes(id);
     }
 }
@@ -57,14 +57,14 @@ Colors[Particles.Fire] = [255, 50, 50];
 Colors[Particles.Steam] = [204, 204, 204];
 
 const Density = [];
-Density[Particles.Air] = 0.05;
-Density[Particles.Dust] = 0.4;
-Density[Particles.Stone] = 0.8;
-Density[Particles.Water] = 0.1;
+Density[Particles.Air] = 0.002;
+Density[Particles.Dust] = 1.5;
+Density[Particles.Stone] = 3.0;
+Density[Particles.Water] = 1;
 Density[Particles.Rust] = Density[Particles.Dust];
-Density[Particles.Lava] = 0.6;
+Density[Particles.Lava] = 2.5;
 Density[Particles.Fire] = 0;
-Density[Particles.Steam] = 0.07;
+Density[Particles.Steam] = 0.1;
 
 const InitialState = [];
 InitialState[Particles.Air] = [Particles.Air, 0, 0, 0];
