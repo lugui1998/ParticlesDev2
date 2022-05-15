@@ -24,6 +24,7 @@ class Particles {
             Particles.Lava,
             Particles.Steam,
             Particles.Acid,
+            Particles.AcidVapor,
         ].includes(id);
     }
 
@@ -88,7 +89,7 @@ Density[Particles.Void] = 9999999;
 Density[Particles.Fire] = 0;
 Density[Particles.Steam] = 0.1;
 Density[Particles.Steel] = Density[Particles.Metal] * 8;
-Density[Particles.Acid] = 1;
+Density[Particles.Acid] = 1.1;
 Density[Particles.AcidVapor] = Density[Particles.Steam];
 
 const InitialState = [];

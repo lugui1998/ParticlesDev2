@@ -144,7 +144,7 @@ function processPixel(x, y) {
 
   [x, y] = handleParticle(index, x, y);
   index = coordsToIndex(x, y);
-  if(!Particles.isStatic(pixelData[index])) {
+  if (!Particles.isStatic(pixelData[index])) {
     handleFluid(index, x, y);
   }
 }
@@ -153,17 +153,14 @@ function handleFluid(index, x, y) {
   const pixelBellow = coordsToIndex(x, y + 1);
   const pixelAbove = coordsToIndex(x, y - 1);
 
-  // debug for water on steam
-
-
   //  Fluid interactions
-  if (!isEmpty(x, y - 1) && Particles.isFluid(pixelData[pixelBellow])) {
+  if (!isEmpty(x, y + 1) && Particles.isFluid(pixelData[pixelBellow])) {
     if (shouldSink(index, pixelBellow)) {
-      swapPixel(x, y, x, y + 1);
+      swapPixel(index, pixelBellow);
     }
-  } else if (!isEmpty(x, y + 1) && Particles.isFluid(pixelData[pixelAbove])) {
-    if (shouldSink(pixelAbove, index)) {
-      swapPixel(x, y, x, y - 1);
+  } else if (!isEmpty(x, y - 1) && Particles.isFluid(pixelData[pixelAbove])) {
+    if (shouldSink(index, pixelAbove)) {
+      swapPixel(index, pixelAbove);
     }
   }
 }
@@ -203,7 +200,9 @@ function shouldSink(index, targetIndex) {
   // returns true is the particle should be able to sink on the target
   // Note: just because it is hevyer doesn't mean it will sink on this frame. It just increases the chance
   if (Density[pixelData[index]] > Density[pixelData[targetIndex]]) {
-    return Random.number() < Density[pixelData[index]] - Density[pixelData[targetIndex]];
+    const difficult = Math.pow(Density[pixelData[index]], 2) - Math.pow(Density[pixelData[targetIndex]], 2);
+    const normalizedDifficult = difficult / (difficult + 1);
+    return Random.number() < normalizedDifficult;
   }
   return false;
 
@@ -243,10 +242,10 @@ function acidVapor(x, y) {
     ) {
       const diffcultToBeCorroded = Math.pow(Density[pixelData[targetIndex]], 2);
       const normalizedDiffcultToBeCorroded = diffcultToBeCorroded / (diffcultToBeCorroded + 1);
-    
+
       if (Random.number() > normalizedDiffcultToBeCorroded) {
-        removePixel(targetX, targetY);
-        removePixel(x, y);
+        removePixel(targetIndex);
+        removePixel(index);
       }
 
       return [x, y];
@@ -257,16 +256,19 @@ function acidVapor(x, y) {
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
-      movePixel(x, y, x + direction, y);
       x += direction;
-      index = coordsToIndex(x, y);
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     }
   } while (++i < 1);
 
   // random chance
   if (Random.number() < 0.3) {
     if (isEmpty(x, y - 1)) {
-      movePixel(x, y, x, --y);
+      y--;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
     }
   }
 
@@ -304,10 +306,10 @@ function acid(x, y) {
 
       // normalize the diffcult to be corroded to be between 0 and 1
       const normalizedDiffcultToBeCorroded = diffcultToBeCorroded / (diffcultToBeCorroded + 1);
-    
+
       if (Random.number() > normalizedDiffcultToBeCorroded) {
-        removePixel(targetX, targetY);
-        removePixel(x, y);
+        removePixel(targetIndex);
+        removePixel(index);
       }
 
       return [x, y];
@@ -318,8 +320,10 @@ function acid(x, y) {
   let canMove = true;
   do {
     if (isEmpty(x, y + 1)) {
-      movePixel(x, y, x, ++y);
-      index = coordsToIndex(x, y);
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       canMove = false;
     }
@@ -330,8 +334,10 @@ function acid(x, y) {
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
-      movePixel(x, y, x + direction, y);
       x += direction;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       direction *= -1;
       continue;
@@ -363,16 +369,19 @@ function steam(x, y) {
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
-      movePixel(x, y, x + direction, y);
       x += direction;
-      index = coordsToIndex(x, y);
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     }
   } while (++i < 1);
 
   // random chance
   if (Random.number() < 0.3) {
     if (isEmpty(x, y - 1)) {
-      movePixel(x, y, x, --y);
+      y--;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
     }
   }
 
@@ -382,10 +391,9 @@ function steam(x, y) {
 function fire(x, y) {
   let index = coordsToIndex(x, y);
 
-
   // probability to expire
   if (Random.number() > 0.95) {
-    removePixel(x, y);
+    removePixel(index);
     return [x, y];
   }
 
@@ -399,7 +407,7 @@ function fire(x, y) {
   for (let [targetX, targetY] of adjacent) {
     const adjacentIndex = coordsToIndex(targetX, targetY);
     if (pixelData[adjacentIndex] === Particles.Water || pixelData[adjacentIndex] === Particles.Acid) {
-      removePixel(x, y);
+      removePixel(index);
       pixelData[adjacentIndex + 2] += 10;
       return [x, y];
     }
@@ -411,20 +419,26 @@ function fire(x, y) {
   let canMove = true;
   do {
     if (isInBounds(x, y - 1) && pixelData[coordsToIndex(x, y - 1)] === Particles.Air) {
-      movePixel(x, y, x, --y);
-      index = coordsToIndex(x, y);
+      y--;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
       pixelData[index + 1] = 1;
     }
   } while (++i < 2 && canMove);
 
   const direction = Random.number() > 0.5 ? 1 : -1;
   if (isEmpty(x + direction, y)) {
-    movePixel(x, y, x + direction, y);
-    index = coordsToIndex(x + direction, y);
+    x += direction;
+    const targetIndex = coordsToIndex(x, y);
+    movePixel(index, targetIndex);
+    index = targetIndex;
     pixelData[index + 1] = 1;
   } else if (isEmpty(x - direction, y)) {
-    movePixel(x, y, x - direction, y);
-    index = coordsToIndex(x - direction, y);
+    x -= direction;
+    const targetIndex = coordsToIndex(x, y);
+    movePixel(index, targetIndex);
+    index = targetIndex;
     pixelData[index + 1] = 1;
   } else {
     canMove = false;
@@ -445,8 +459,9 @@ function voidParticle(x, y) {
   ];
 
   for (let [targetX, targetY] of adjacent) {
-    if (!isEmpty(targetX, targetY) && pixelData[coordsToIndex(targetX, targetY)] !== Particles.Void) {
-      removePixel(targetX, targetY);
+    const targetIndex = coordsToIndex(targetX, targetY);
+    if (!isEmpty(targetX, targetY) && pixelData[targetIndex] !== Particles.Void) {
+      removePixel(targetIndex);
     }
   }
   return [x, y];
@@ -460,7 +475,7 @@ function lava(x, y) {
     [x, y + 1],
   ];
 
-  const index = coordsToIndex(x, y);
+  let index = coordsToIndex(x, y);
 
   for (let [targetX, targetY] of adjacent) {
     const adjacentIndex = coordsToIndex(targetX, targetY);
@@ -476,7 +491,10 @@ function lava(x, y) {
   let canMove = true;
   do {
     if (isEmpty(x, y + 1)) {
-      movePixel(x, y, x, ++y);
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       canMove = false;
     }
@@ -491,8 +509,10 @@ function lava(x, y) {
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
-      movePixel(x, y, x + direction, y);
       x += direction;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       direction *= -1;
       continue;
@@ -558,8 +578,10 @@ function water(x, y) {
   let canMove = true;
   do {
     if (isEmpty(x, y + 1)) {
-      movePixel(x, y, x, ++y);
-      index = coordsToIndex(x, y);
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       canMove = false;
     }
@@ -570,8 +592,10 @@ function water(x, y) {
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
-      movePixel(x, y, x + direction, y);
       x += direction;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       direction *= -1;
       continue;
@@ -590,7 +614,7 @@ function stone(x, y) {
     [x, y + 1],
   ];
   // if adjacent to lava, it has a chance of becoming lava
-  const index = coordsToIndex(x, y);
+  let index = coordsToIndex(x, y);
 
   for (let [targetX, targetY] of adjacent) {
     if (!isInBounds(targetX, targetY)) continue;
@@ -608,7 +632,10 @@ function stone(x, y) {
   let canMove = true;
   do {
     if (isEmpty(x, y + 1)) {
-      movePixel(x, y, x, ++y);
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       canMove = false;
     }
@@ -618,7 +645,7 @@ function stone(x, y) {
 }
 
 function dust(x, y) {
-  const index = coordsToIndex(x, y);
+  let index = coordsToIndex(x, y);
 
   pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1];
 
@@ -690,7 +717,10 @@ function dust(x, y) {
 
       pixelData[index + 1] = pixelData[index + 1] > 100 ? 100 : pixelData[index + 1] + 2;
 
-      movePixel(x, y, x, ++y);
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
     } else {
       pixelData[index + 1]--;
       pixelData[index + 1] = pixelData[index + 1] < 0 ? 0 : pixelData[index + 1] - 1;
@@ -704,7 +734,10 @@ function dust(x, y) {
   // chooses left or right
   const direction = Random.direction();
   if (isEmpty(x + direction, y)) {
-    movePixel(x, y, x + direction, y);
+    x += direction;
+    const targetIndex = coordsToIndex(x, y);
+    movePixel(index, targetIndex);
+    index = targetIndex;
   } else {
     // dust can move sideways even on  liquids
     // check if the pixel in the desired spot is liquid
@@ -721,28 +754,20 @@ function dust(x, y) {
   return [x, y];
 }
 
-function removePixel(x, y) {
-  const index = coordsToIndex(x, y);
+function removePixel(index) {
   for (let i = 0; i < pixelDataSize; i++) {
-    pixelData[index + i] = 0;
+    pixelData[index + i] = InitialState[Particles.Air][i];
   }
 }
 
-function movePixel(prevX, prevY, x, y) {
-  // Transfers the data starting at the previous index to the new index
-  const prevPos = coordsToIndex(prevX, prevY);
-  const newPos = coordsToIndex(x, y);
+function movePixel(fromIndex, toIndex) {
   for (let i = 0; i < pixelDataSize; i++) {
-    pixelData[newPos + i] = pixelData[prevPos + i];
-
-    // also deletes the data at the old position
-    pixelData[prevPos + i] = 0;
+    pixelData[toIndex + i] = pixelData[fromIndex + i];
+    pixelData[fromIndex + i] = InitialState[Particles.Air][i];
   }
 }
 
-function swapPixel(x, y, x2, y2) {
-  const index1 = coordsToIndex(x, y);
-  const index2 = coordsToIndex(x2, y2);
+function swapPixel(index1, index2) {
   let temp;
   for (let i = 0; i < pixelDataSize; i++) {
     temp = pixelData[index1 + i];
