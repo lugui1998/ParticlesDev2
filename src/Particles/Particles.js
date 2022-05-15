@@ -41,8 +41,10 @@ class Particles {
         return [
             Particles.Air,
             Particles.Metal,
+            Particles.Steel,
             Particles.Void,
             Particles.Clone,
+
         ].includes(id);
     }
 }
