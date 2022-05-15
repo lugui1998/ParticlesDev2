@@ -58,7 +58,7 @@ Names[Particles.Fire] = 'Fire';
 Names[Particles.Steam] = 'Steam';
 Names[Particles.Steel] = 'Steel';
 Names[Particles.Acid] = 'Acid';
-Names[Particles.AcidVapor] = 'Acid Vapor';
+Names[Particles.AcidVapor] = 'Acid-Vapor';
 
 
 

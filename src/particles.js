@@ -83,28 +83,17 @@ for (let i = 0; i < Names.length; i++) {
     const element = document.createElement('div');
     element.setAttribute('id', `el-${name}`);
     element.classList.add('element');
-    if (sandbox.getBrushParticleId() === i) {
-        element.classList.add('selected');
-    } else {
-        element.classList.add('unSelected');
-    }
+    element.classList.add('outline');
     element.textContent = name;
     element.style.color = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
 
     elements.appendChild(element);
 
-
     element.onclick = (e) => {
-        // add the class "selected" to the element
-        element.classList.add('selected');
-        element.classList.remove('unSelected');
         sandbox.setBrushParticle(0, Particles.getId(name));
     };
 
     element.oncontextmenu = (e) => {
-        // add the class "selected" to the element
-        element.classList.add('selected');
-        element.classList.remove('unSelected');
         sandbox.setBrushParticle(1, Particles.getId(name));
         e.preventDefault();
     };
