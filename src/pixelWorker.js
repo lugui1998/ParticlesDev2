@@ -180,6 +180,7 @@ function handleParticle(index, x, y) {
     case Particles.Steel: { break; }
     case Particles.Acid: { newPos = acid(x, y); break; }
     case Particles.AcidVapor: { newPos = acidVapor(x, y); break; }
+    case Particles.Clone: { newPos = clone(x, y); break; }
   }
 
   return newPos;
@@ -210,6 +211,53 @@ function shouldSink(index, targetIndex) {
 
 /* Particle Physics */
 
+function clone(x, y) {
+  const index = coordsToIndex(x, y);
+
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+
+  for (let [targetX, targetY] of adjacent) {
+    const targetIndex = coordsToIndex(targetX, targetY);
+
+    if (pixelData[targetIndex] == Particles.Clone) {
+      if (pixelData[targetIndex + 1] == Particles.Air && pixelData[index + 1] != Particles.Air) {
+        // propagate the current cloning particle
+        pixelData[targetIndex + 1] = pixelData[index + 1];
+      }
+    } else if (
+      isInBounds(targetX, targetY) &&
+      pixelData[targetIndex] != Particles.Air
+    ) {
+      pixelData[index + 1] = pixelData[targetIndex];
+      break;
+    }
+  }
+
+  // random chance
+  if (!pixelData[index + 1] || Random.number() > 0.05) {
+    return [x, y];
+  }
+
+  shuffleArray(adjacent);
+  for (let [targetX, targetY] of adjacent) {
+    const targetIndex = coordsToIndex(targetX, targetY);
+    if (isInBounds(targetX, targetY) && isEmpty(targetX, targetY)) {
+      for (let i = 0; i < pixelDataSize; i++) {
+        pixelData[targetIndex + i] = InitialState[pixelData[index + 1]][i];
+      }
+      break;
+    }
+  }
+
+
+  return [x, y];
+}
+
 function acidVapor(x, y) {
   let index = coordsToIndex(x, y);
 
@@ -237,6 +285,7 @@ function acidVapor(x, y) {
       pixelData[targetIndex] !== Particles.Acid &&
       pixelData[targetIndex] !== Particles.AcidVapor &&
       pixelData[targetIndex] !== Particles.Void &&
+      pixelData[targetIndex] !== Particles.Clone &&
       isInBounds(targetX, targetY) &&
       !isEmpty(targetX, targetY)
     ) {
@@ -297,6 +346,7 @@ function acid(x, y) {
       pixelData[targetIndex] !== Particles.Acid &&
       pixelData[targetIndex] !== Particles.AcidVapor &&
       pixelData[targetIndex] !== Particles.Void &&
+      pixelData[targetIndex] !== Particles.Clone &&
       isInBounds(targetX, targetY) &&
       !isEmpty(targetX, targetY)
     ) {

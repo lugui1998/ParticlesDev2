@@ -12,6 +12,7 @@ class Particles {
     static Steel = 10;
     static Acid = 11;
     static AcidVapor = 12;
+    static Clone = 13;
 
 
     static getId(name) {
@@ -41,6 +42,7 @@ class Particles {
             Particles.Air,
             Particles.Metal,
             Particles.Void,
+            Particles.Clone,
         ].includes(id);
     }
 }
@@ -59,6 +61,7 @@ Names[Particles.Steam] = 'Steam';
 Names[Particles.Steel] = 'Steel';
 Names[Particles.Acid] = 'Acid';
 Names[Particles.AcidVapor] = 'Acid-Vapor';
+Names[Particles.Clone] = 'Clone';
 
 
 
@@ -76,6 +79,7 @@ Colors[Particles.Steam] = [204, 204, 204];
 Colors[Particles.Steel] = [169, 173, 174];
 Colors[Particles.Acid] = [204, 255, 0];
 Colors[Particles.AcidVapor] = [120, 120, 0];
+Colors[Particles.Clone] = [144, 112, 16];
 
 const Density = [];
 Density[Particles.Air] = 0.002;
@@ -91,6 +95,7 @@ Density[Particles.Steam] = 0.1;
 Density[Particles.Steel] = Density[Particles.Metal] * 8;
 Density[Particles.Acid] = 1.1;
 Density[Particles.AcidVapor] = Density[Particles.Steam];
+Density[Particles.Clone] = Density[Particles.Void];
 
 const InitialState = [];
 InitialState[Particles.Air] = [Particles.Air, 0, 0, 0];
@@ -106,6 +111,7 @@ InitialState[Particles.Steam] = [Particles.Steam, 0, 90, 0];
 InitialState[Particles.Steel] = [Particles.Steel, 0, 0, 0];
 InitialState[Particles.Acid] = [Particles.Acid, 0, 0, 0];
 InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 90, 0];
+InitialState[Particles.Clone] = [Particles.Clone, 0, 0, 0];
 
 
 module.exports = {
