@@ -512,8 +512,11 @@ class Sandbox {
     }
 
     clear() {
-        for (let i = 0; i < this.grid.length; i++) {
-            this.grid[i] = 0;
+        for (let i = 0; i < this.grid.length; i+= pixelDataSize) {
+            this.grid[i] = InitialState[Particles.Air][0];
+            this.grid[i + 1] = InitialState[Particles.Air][1];
+            this.grid[i + 2] = InitialState[Particles.Air][2];
+            this.grid[i + 3] = InitialState[Particles.Air][3];
         }
     }
 

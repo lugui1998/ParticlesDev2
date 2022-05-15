@@ -9,6 +9,9 @@ class Particles {
     static Void = 7;
     static Fire = 8;
     static Steam = 9;
+    static Steel = 10;
+    static Acid = 11;
+    static AcidVapor = 12;
 
 
     static getId(name) {
@@ -20,13 +23,23 @@ class Particles {
             Particles.Water,
             Particles.Lava,
             Particles.Steam,
+            Particles.Acid,
         ].includes(id);
     }
 
     static isHidden(id) {
         return [
             Particles.Rust,
-            // Particles.Steam,
+            Particles.Steam,
+            Particles.AcidVapor
+        ].includes(id);
+    }
+
+    static isStatic(id) {
+        return [
+            Particles.Air,
+            Particles.Metal,
+            Particles.Void,
         ].includes(id);
     }
 }
@@ -42,6 +55,10 @@ Names[Particles.Lava] = 'Lava';
 Names[Particles.Void] = 'Void';
 Names[Particles.Fire] = 'Fire';
 Names[Particles.Steam] = 'Steam';
+Names[Particles.Steel] = 'Steel';
+Names[Particles.Acid] = 'Acid';
+Names[Particles.AcidVapor] = 'Acid Vapor';
+
 
 
 const Colors = [];
@@ -55,16 +72,24 @@ Colors[Particles.Lava] = [255, 102, 51];
 Colors[Particles.Void] = [0, 0, 0];
 Colors[Particles.Fire] = [255, 50, 50];
 Colors[Particles.Steam] = [204, 204, 204];
+Colors[Particles.Steel] = [169, 173, 174];
+Colors[Particles.Acid] = [204, 255, 0];
+Colors[Particles.AcidVapor] = [120, 120, 0];
 
 const Density = [];
 Density[Particles.Air] = 0.002;
 Density[Particles.Dust] = 1.5;
 Density[Particles.Stone] = 3.0;
 Density[Particles.Water] = 1;
+Density[Particles.Metal] = 4;
 Density[Particles.Rust] = Density[Particles.Dust];
 Density[Particles.Lava] = 2.5;
+Density[Particles.Void] = 9999999;
 Density[Particles.Fire] = 0;
 Density[Particles.Steam] = 0.1;
+Density[Particles.Steel] = Density[Particles.Metal] * 8;
+Density[Particles.Acid] = 1;
+Density[Particles.AcidVapor] = Density[Particles.Steam];
 
 const InitialState = [];
 InitialState[Particles.Air] = [Particles.Air, 0, 0, 0];
@@ -77,6 +102,9 @@ InitialState[Particles.Lava] = [Particles.Lava, 0, 0, 0];
 InitialState[Particles.Void] = [Particles.Void, 0, 0, 0];
 InitialState[Particles.Fire] = [Particles.Fire, 0, 0, 0];
 InitialState[Particles.Steam] = [Particles.Steam, 0, 90, 0];
+InitialState[Particles.Steel] = [Particles.Steel, 0, 0, 0];
+InitialState[Particles.Acid] = [Particles.Acid, 0, 0, 0];
+InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 90, 0];
 
 
 module.exports = {
