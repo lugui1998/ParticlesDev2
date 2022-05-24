@@ -218,10 +218,9 @@ function executeVectors(index, x, y) {
 }
 
 function executeBouyancy(index, x, y) {
-
   // check if the pixel should sink down
   const indexBellow = coordsToIndex(x, y + 1);
-  if (isInBounds(x, y + 1) && Particles.isFluid(pixelData[indexBellow])) {
+  if (!isEmpty(x, y + 1) && Particles.isFluid(pixelData[indexBellow])) {
     if (shouldSink(index, indexBellow)) {
       swapPixel(index, indexBellow);
       y++;
@@ -231,7 +230,7 @@ function executeBouyancy(index, x, y) {
 
   // check if the pixel should float up
   const indexAbove = coordsToIndex(x, y - 1);
-  if (isInBounds(x, y - 1) && Particles.isFluid(pixelData[indexAbove])) {
+  if (!isEmpty(indexAbove) && Particles.isFluid(pixelData[indexAbove])) {
     if (shouldSink(indexAbove, index)) {
       swapPixel(indexAbove, index);
       y--;
@@ -256,6 +255,7 @@ function processReactions(index, x, y) {
     case Particles.Steam: { return reactionSteam(index, x, y); }
     case Particles.Steel: { return reactionSteel(index, x, y); }
     case Particles.Acid: { return reactionAcid(index, x, y); }
+    case Particles.AcidVapor: { return reactionAcidVapor(index, x, y); }
     case Particles.Clone: { return reactionClone(index, x, y); }
     case Particles.Oil: { return reactionOil(index, x, y); }
   }
@@ -479,12 +479,11 @@ function reactionStone(index, x, y) {
 }
 
 function reactionWater(index, x, y) {
-  if (pixelData[index + 2] >= 100) {
+  if (pixelData[index + 3] >= 100) {
     // turn into Steam
     pixelData[index] = Particles.Steam;
     return [index, x, y];
   }
-
 
   let i = 0;
   let direction = Random.direction() * 2;
@@ -580,10 +579,11 @@ function reactionLava(index, x, y) {
     const targetIndex = coordsToIndex(targetX, targetY);
     if (
       pixelData[targetIndex] === Particles.Water ||
+      pixelData[targetIndex] === Particles.Acid ||
       pixelData[targetIndex] === Particles.Oil
     ) {
-      pixelData[targetIndex + 3] += 10;
-      pixelData[index + 3] -= 10;
+      pixelData[targetIndex + 3] += 20;
+      pixelData[index + 3] -= 20;
     }
   }
 
@@ -656,7 +656,7 @@ function reactionFire(index, x, y) {
       pixelData[adjacentIndex] === Particles.Stone
     ) {
       removePixel(index);
-      pixelData[adjacentIndex + 2] += 10;
+      pixelData[adjacentIndex + 3] += 10;
       return [x, y];
     }
   }
@@ -738,8 +738,76 @@ function reactionClone(index, x, y) {
   return [index, x, y];
 }
 
+function reactionAcidVapor(index, x, y) {
+  // random chance
+  if (Random.number() < 0.05) {
+    pixelData[index + 3]--;
+  }
+
+  if (pixelData[index + 3] <= 10) {
+    // turns into water
+    pixelData[index] = Particles.Acid;
+    return [index, x, y];
+  }
+
+  const adjacent = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
+
+  for (let [targetX, targetY] of adjacent) {
+    const targetIndex = coordsToIndex(targetX, targetY);
+    if (
+      pixelData[targetIndex] !== Particles.Acid &&
+      pixelData[targetIndex] !== Particles.AcidVapor &&
+      pixelData[targetIndex] !== Particles.Void &&
+      pixelData[targetIndex] !== Particles.Clone &&
+      isInBounds(targetX, targetY) &&
+      !isEmpty(targetX, targetY)
+    ) {
+      // diffcult to be corroded is calculated based on the density of the target.
+      // it gets exponentially more difficult to corrode the target with higher density
+      const diffcultToBeCorroded = Math.pow(Density[pixelData[targetIndex]], 2);
+
+      // normalize the diffcult to be corroded to be between 0 and 1
+      const normalizedDiffcultToBeCorroded = diffcultToBeCorroded / (diffcultToBeCorroded + 1);
+
+      if (Random.number() > normalizedDiffcultToBeCorroded) {
+        removePixel(targetIndex);
+        removePixel(index);
+      }
+
+      return [index, x, y];
+    }
+  }
+
+  const direction = Random.number() > 0.5 ? 1 : -1;
+  i = 0;
+  do {
+    if (isEmpty(x + direction, y)) {
+      x += direction;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
+    }
+  } while (++i < 1);
+
+  // random chance
+  if (Random.number() < 0.3) {
+    if (isEmpty(x, y - 1)) {
+      y--;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+    }
+  }
+
+  return [index, x, y];
+}
+
 function reactionAcid(index, x, y) {
-  if (pixelData[index + 2] >= 100) {
+  if (pixelData[index + 3] >= 80) {
     // turn into Acid Vapor
     pixelData[index] = Particles.AcidVapor;
     return [index, x, y];
@@ -817,10 +885,13 @@ function reactionSteel(index, x, y) {
 function reactionSteam(index, x, y) {
   // random chance
   if (Random.number() < 0.05) {
-    pixelData[index + 2]--;
+    pixelData[index + 3]--;
   }
 
-  if (pixelData[index + 2] <= 50) {
+  if (pixelData[index + 3] <= 50) {
+    if (pixelData[index + 3] <= 0) {
+      pixelData[index + 3] = 0;
+    }
     // turns into water
     pixelData[index] = Particles.Water;
     return [index, x, y];

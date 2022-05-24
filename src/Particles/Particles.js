@@ -110,13 +110,13 @@ InitialState[Particles.Stone] = [Particles.Stone, 0, 0, 0];
 InitialState[Particles.Water] = [Particles.Water, 0, 0, 25];
 InitialState[Particles.Metal] = [Particles.Metal, 0, 0, 0];
 InitialState[Particles.Rust] = [Particles.Rust, 0, 0, 0];
-InitialState[Particles.Lava] = [Particles.Lava, 0, 0, 100];
+InitialState[Particles.Lava] = [Particles.Lava, 0, 0, 200];
 InitialState[Particles.Void] = [Particles.Void, 0, 0, 0];
 InitialState[Particles.Fire] = [Particles.Fire, 0, 0, 0];
-InitialState[Particles.Steam] = [Particles.Steam, 0, 0, 0];
+InitialState[Particles.Steam] = [Particles.Steam, 0, 0, 80];
 InitialState[Particles.Steel] = [Particles.Steel, 0, 0, 0];
 InitialState[Particles.Acid] = [Particles.Acid, 0, 0, 0];
-InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 0, 0];
+InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 0, 80];
 InitialState[Particles.Clone] = [Particles.Clone, 0, 0, 0];
 InitialState[Particles.Oil] = [Particles.Oil, 0, 0, 0];
 
