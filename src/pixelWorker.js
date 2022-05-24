@@ -269,6 +269,7 @@ function reactionOil(index, x, y) {
     [x, y + 1],
   ];
 
+
   for (let [targetX, targetY] of adjacent) {
     if (!isInBounds(targetX, targetY)) continue;
     const targetIndex = coordsToIndex(targetX, targetY);
@@ -276,17 +277,20 @@ function reactionOil(index, x, y) {
       pixelData[targetIndex] === Particles.Fire ||
       pixelData[targetIndex] === Particles.Lava
     ) {
-      pixelData[index + 3] = true;
+      pixelData[index + 3] = 1;
     }
   }
+
 
   if (pixelData[index + 3]) {
     // the particle is on fire it wil attempt to emmit a Fire particle at the first adjacent empty space
     shuffleArray(adjacent);
+    let emmited = false;
     for (let [targetX, targetY] of adjacent) {
       if (!isEmpty(targetX, targetY)) continue;
       const targetIndex = coordsToIndex(targetX, targetY);
       setPixel(targetIndex, Particles.Fire);
+      emmited = true;
 
       // random chance to burn out
       if (Random.number() < 0.1) {
@@ -295,16 +299,21 @@ function reactionOil(index, x, y) {
 
       break;
     }
+    if (!emmited) {
+      pixelData[index + 3]--;
+    }
   }
+
+
 
   let i = 0;
   let direction = Random.direction() * 2;
 
   do {
-    if (isEmpty(x + direction, y)) {
+    const targetIndex = coordsToIndex(x + direction, y);
+    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Oil && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
+      swapPixel(index, targetIndex);
       index = targetIndex;
     }
   } while (++i < 1);
@@ -489,10 +498,10 @@ function reactionWater(index, x, y) {
   let direction = Random.direction() * 2;
 
   do {
-    if (isEmpty(x + direction, y)) {
+    const targetIndex = coordsToIndex(x + direction, y);
+    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Water && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
+      swapPixel(index, targetIndex);
       index = targetIndex;
     } else {
       direction *= -1;
@@ -591,10 +600,10 @@ function reactionLava(index, x, y) {
   let direction = Random.direction() * 2;
 
   do {
-    if (isEmpty(x + direction, y)) {
+    const targetIndex = coordsToIndex(x + direction, y);
+    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Lava && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
+      swapPixel(index, targetIndex);
       index = targetIndex;
     }
   } while (++i < 1);
@@ -851,10 +860,10 @@ function reactionAcid(index, x, y) {
   let direction = Random.direction() * 2;
 
   do {
-    if (isEmpty(x + direction, y)) {
+    const targetIndex = coordsToIndex(x + direction, y);
+    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Acid && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
+      swapPixel(index, targetIndex);
       index = targetIndex;
     } else {
       direction *= -1;
