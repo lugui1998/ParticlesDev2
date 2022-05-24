@@ -13,6 +13,7 @@ class Particles {
     static Acid = 11;
     static AcidVapor = 12;
     static Clone = 13;
+    static Oil = 14;
 
 
     static getId(name) {
@@ -26,6 +27,7 @@ class Particles {
             Particles.Steam,
             Particles.Acid,
             Particles.AcidVapor,
+            Particles.Oil,
         ].includes(id);
     }
 
@@ -44,7 +46,6 @@ class Particles {
             Particles.Steel,
             Particles.Void,
             Particles.Clone,
-
         ].includes(id);
     }
 }
@@ -64,6 +65,7 @@ Names[Particles.Steel] = 'Steel';
 Names[Particles.Acid] = 'Acid';
 Names[Particles.AcidVapor] = 'Acid-Vapor';
 Names[Particles.Clone] = 'Clone';
+Names[Particles.Oil] = 'Oil';
 
 
 
@@ -82,6 +84,7 @@ Colors[Particles.Steel] = [169, 173, 174];
 Colors[Particles.Acid] = [204, 255, 0];
 Colors[Particles.AcidVapor] = [120, 120, 0];
 Colors[Particles.Clone] = [144, 112, 16];
+Colors[Particles.Oil] = [128, 48, 32];
 
 const Density = [];
 Density[Particles.Air] = 0.002;
@@ -98,22 +101,41 @@ Density[Particles.Steel] = Density[Particles.Metal] * 8;
 Density[Particles.Acid] = 1.1;
 Density[Particles.AcidVapor] = Density[Particles.Steam];
 Density[Particles.Clone] = Density[Particles.Void];
+Density[Particles.Oil] = Density[Particles.Water] / 2;
 
 const InitialState = [];
 InitialState[Particles.Air] = [Particles.Air, 0, 0, 0];
-InitialState[Particles.Dust] = [Particles.Dust, 5, 0, 0];
+InitialState[Particles.Dust] = [Particles.Dust, 0, 0, 50];
 InitialState[Particles.Stone] = [Particles.Stone, 0, 0, 0];
-InitialState[Particles.Water] = [Particles.Water, 0, 30, 0];
+InitialState[Particles.Water] = [Particles.Water, 0, 0, 25];
 InitialState[Particles.Metal] = [Particles.Metal, 0, 0, 0];
 InitialState[Particles.Rust] = [Particles.Rust, 0, 0, 0];
-InitialState[Particles.Lava] = [Particles.Lava, 0, 0, 0];
+InitialState[Particles.Lava] = [Particles.Lava, 0, 0, 100];
 InitialState[Particles.Void] = [Particles.Void, 0, 0, 0];
 InitialState[Particles.Fire] = [Particles.Fire, 0, 0, 0];
-InitialState[Particles.Steam] = [Particles.Steam, 0, 90, 0];
+InitialState[Particles.Steam] = [Particles.Steam, 0, 0, 0];
 InitialState[Particles.Steel] = [Particles.Steel, 0, 0, 0];
 InitialState[Particles.Acid] = [Particles.Acid, 0, 0, 0];
-InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 90, 0];
+InitialState[Particles.AcidVapor] = [Particles.AcidVapor, 0, 0, 0];
 InitialState[Particles.Clone] = [Particles.Clone, 0, 0, 0];
+InitialState[Particles.Oil] = [Particles.Oil, 0, 0, 0];
+
+const Movements = [];
+Movements[Particles.Air] = 0;
+Movements[Particles.Dust] = 3;
+Movements[Particles.Stone] = 2;
+Movements[Particles.Water] = 2;
+Movements[Particles.Metal] = 0;
+Movements[Particles.Rust] = Movements[Particles.Dust];
+Movements[Particles.Lava] = Movements[Particles.Dust];
+Movements[Particles.Void] = 0;
+Movements[Particles.Fire] = 3;
+Movements[Particles.Steam] = 3;
+Movements[Particles.Steel] = Movements[Particles.Metal];
+Movements[Particles.Acid] = Movements[Particles.Water];
+Movements[Particles.AcidVapor] = Movements[Particles.Steam];
+Movements[Particles.Clone] = Movements[Particles.Void];
+Movements[Particles.Oil] = 2;
 
 
 module.exports = {
@@ -122,4 +144,5 @@ module.exports = {
     Colors,
     Density,
     InitialState,
+    Movements,
 }
