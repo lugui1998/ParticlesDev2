@@ -380,12 +380,15 @@ class Sandbox {
             }
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
             let elState;
-            if (this.leftMousePressed && this.rightMousePressed) {
-                // pick a random one
-                elState = Math.random() > 0.5 ? brush0ElementState : brush1ElementState;
-            } else {
-                elState = this.leftMousePressed ? brush0ElementState : brush1ElementState;
+
+            if(this.rightMousePressed) {
+                elState = brush1ElementState;
             }
+
+            if(this.leftMousePressed) {
+                elState = brush0ElementState;
+            }
+
             for (let i = 0; i < pixelDataSize; i++) {
                 if (this.grid[index + i] === Particles.Air || elState[0] === Particles.Air || elState[0] === Particles.Void) {
                     this.grid[index + i] = elState[i];

@@ -277,12 +277,12 @@ function reactionOil(index, x, y) {
       pixelData[targetIndex] === Particles.Fire ||
       pixelData[targetIndex] === Particles.Lava
     ) {
-      pixelData[index + 3] = 1;
+      pixelData[index + 3] += 10;
     }
   }
 
 
-  if (pixelData[index + 3]) {
+  if (pixelData[index + 3] > 50) {
     // the particle is on fire it wil attempt to emmit a Fire particle at the first adjacent empty space
     shuffleArray(adjacent);
     let emmited = false;
