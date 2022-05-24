@@ -277,7 +277,7 @@ function reactionOil(index, x, y) {
       pixelData[targetIndex] === Particles.Fire ||
       pixelData[targetIndex] === Particles.Lava
     ) {
-      pixelData[index + 3] += 10;
+      pixelData[index + 3] += 50;
     }
   }
 
