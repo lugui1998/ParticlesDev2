@@ -22,6 +22,8 @@ let lineOrder = [];
 let width;
 let height;
 
+let onPhysics = false;
+
 onmessage = function (e) {
   handleMessage(e.data);
 }
@@ -47,12 +49,11 @@ function initPixelGrid(data) {
   screenWidth = data.screenWidth;
   screenHeight = data.screenHeight;
 
-  for (let x = startX; x < endX; x++) {
-    lineOrder.push(x);
-  }
+  computeUpdateOrderRadomness();
 
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x += 4) {
+      lineOrder[y].push(x);
       const index = coordsToIndex(x, y);
       setPixel(index, Particles.Air);
     }
@@ -60,6 +61,16 @@ function initPixelGrid(data) {
 
   ctx = canvas.getContext('2d', { alpha: false });
   requestAnimationFrame(render);
+}
+
+function computeUpdateOrderRadomness() {
+  for (let y = startY; y < endY; y++) {
+    lineOrder[y] = [];
+    for (let x = startX; x < endX; x++) {
+      lineOrder[y].push(x);
+    }
+    shuffleArray(lineOrder[y]);
+  }
 }
 
 function shuffleArray(array) {
@@ -95,6 +106,11 @@ function render() {
 
   ctx.putImageData(imagedata, 0, 0);
 
+  if (!onPhysics) {
+    // do here heavy stuff that takes a long time and should not interfere with the physics
+    computeUpdateOrderRadomness();
+  }
+
   requestAnimationFrame(render);
 }
 
@@ -107,29 +123,22 @@ function coordsToIndex(x, y) {
   return (x + y * screenWidth) * pixelDataSize;
 }
 
-function IndexToCoords(index) {
-  // convert the index to the x and y coordinates
-  return [
-    index % screenWidth,
-    Math.floor(index / (screenWidth * pixelDataSize)),
-  ]
-}
 
-let reverseOrder = false;
 function doPhysics() {
+  onPhysics = true;
+  // shuffleArray(lineOrder);
   // for each pixel of the Tile from end to start
   for (let y = endY - 1; y >= startY; y--) {
-    // shuffleArray(lineOrder);
     // for (let x = endX - 1; x >= startX; x--) {
-    for (let x of lineOrder) {
+    for (let x of lineOrder[y]) {
       processPixel(x, y);
     }
   }
-  reverseOrder = !reverseOrder;
 
   postMessage({
     type: 'donePhysics',
   });
+  onPhysics = false;
 }
 
 
@@ -300,7 +309,7 @@ function reactionOil(index, x, y) {
       break;
     }
     if (!emmited) {
-      pixelData[index + 3]-= 20;
+      pixelData[index + 3] -= 20;
     }
   }
 
@@ -310,7 +319,7 @@ function reactionOil(index, x, y) {
 
   do {
     const targetIndex = coordsToIndex(x + direction, y);
-    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Oil && Particles.isFluid(pixelData[targetIndex]))) {
+    if (isEmpty(x + direction, y) || (pixelData[targetIndex] != Particles.Oil && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
       swapPixel(index, targetIndex);
       index = targetIndex;
@@ -498,7 +507,7 @@ function reactionWater(index, x, y) {
 
   do {
     const targetIndex = coordsToIndex(x + direction, y);
-    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Water && Particles.isFluid(pixelData[targetIndex]))) {
+    if (isEmpty(x + direction, y) || (pixelData[targetIndex] != Particles.Water && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
       swapPixel(index, targetIndex);
       index = targetIndex;
@@ -600,7 +609,7 @@ function reactionLava(index, x, y) {
 
   do {
     const targetIndex = coordsToIndex(x + direction, y);
-    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Lava && Particles.isFluid(pixelData[targetIndex]))) {
+    if (isEmpty(x + direction, y) || (pixelData[targetIndex] != Particles.Lava && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
       swapPixel(index, targetIndex);
       index = targetIndex;
@@ -857,7 +866,7 @@ function reactionAcid(index, x, y) {
 
   do {
     const targetIndex = coordsToIndex(x + direction, y);
-    if (isEmpty(x + direction, y) || ( pixelData[targetIndex] != Particles.Acid && Particles.isFluid(pixelData[targetIndex]))) {
+    if (isEmpty(x + direction, y) || (pixelData[targetIndex] != Particles.Acid && Particles.isFluid(pixelData[targetIndex]))) {
       x += direction;
       swapPixel(index, targetIndex);
       index = targetIndex;
