@@ -371,10 +371,6 @@ function reactionDust(index, x, y) {
     }
   }
 
-  if (pixelData[index + 3] <= 0 && Random.number() < 0.01) {
-    return [index, x, y];
-  }
-
   if (pixelData[index + 3] <= 0) { // The particle is settled
     // count how many of the pixels touching the particle (including diagonals) are dust
     let count = 0;
@@ -392,7 +388,9 @@ function reactionDust(index, x, y) {
     ];
     do {
       const [targetX, targetY] = adjacentDust[i];
-      if (isInBounds(targetX, targetY)) {
+      if (!isInBounds(targetX, targetY)) {
+        count++;
+      } else {
         const targetIndex = coordsToIndex(targetX, targetY);
         if (pixelData[targetIndex] === Particles.Dust) {
           count++;
