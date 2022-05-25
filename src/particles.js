@@ -3,7 +3,7 @@ if (
     typeof SharedArrayBuffer === 'undefined' ||
     !HTMLCanvasElement.prototype.transferControlToOffscreen
 ) {
-    alert('This page cannot run on modern browsers.'); // Just to trigger Firefox users
+    alert('This page cannot run in this browser. Please use a modern browser or a recent version of Chrome.');
     throw new Error('Unsupported browser');
 }
 
