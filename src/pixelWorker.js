@@ -119,7 +119,7 @@ let reverseOrder = false;
 function doPhysics() {
   // for each pixel of the Tile from end to start
   for (let y = endY - 1; y >= startY; y--) {
-    shuffleArray(lineOrder);
+    // shuffleArray(lineOrder);
     // for (let x = endX - 1; x >= startX; x--) {
     for (let x of lineOrder) {
       processPixel(x, y);
@@ -303,7 +303,6 @@ function reactionOil(index, x, y) {
       pixelData[index + 3]-= 20;
     }
   }
-
 
 
   let i = 0;
@@ -680,7 +679,6 @@ function reactionFire(index, x, y) {
       const targetIndex = coordsToIndex(x, y);
       movePixel(index, targetIndex);
       index = targetIndex;
-      pixelData[index + 1] = 1;
     }
   } while (++i < 2 && canMove);
 
@@ -690,18 +688,16 @@ function reactionFire(index, x, y) {
     const targetIndex = coordsToIndex(x, y);
     movePixel(index, targetIndex);
     index = targetIndex;
-    pixelData[index + 1] = 1;
   } else if (isEmpty(x - direction, y, false)) {
     x -= direction;
     const targetIndex = coordsToIndex(x, y);
     movePixel(index, targetIndex);
     index = targetIndex;
-    pixelData[index + 1] = 1;
   } else {
     canMove = false;
   }
 
-  return [x, y];
+  return [index, x, y];
 }
 
 function reactionClone(index, x, y) {
