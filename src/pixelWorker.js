@@ -653,7 +653,7 @@ function reactionFire(index, x, y) {
   // probability to expire
   if (Random.number() > 0.95) {
     removePixel(index);
-    return [x, y];
+    return [index, x, y];
   }
 
   const adjacent = [
@@ -672,7 +672,7 @@ function reactionFire(index, x, y) {
     ) {
       removePixel(index);
       pixelData[adjacentIndex + 3] += 10;
-      return [x, y];
+      return [index, x, y];
     }
   }
 
