@@ -50,6 +50,7 @@ class Tile {
         const { type, data } = e.data;
         switch (type) {
             case 'debug': { console.log(data); break; }
+            case 'error': { alert(data); break; }
             case 'donePhysics': { this.inUpdate = false; break; }
         }
 

@@ -148,13 +148,23 @@ function processPixel(x, y) {
   if (pixelData[index] === Particles.Air) {
     return;
   }
+  try {
+    [index, x, y] = processReactions(index, x, y);
 
-  [index, x, y] = processReactions(index, x, y);
+    if (!Particles.isStatic(pixelData[index])) {
+      [index, x, y] = executeBouyancy(index, x, y);
+    }
+    executeVectors(index, x, y);
+  } catch (e) {
+    let errorStr = `${e.message}\n${x}-${y}-${index}`;
+    for (let i = 0; i < pixelDataSize; i++) {
+      errorStr += ` ${pixelData[index + i]}`;
+    }
 
-  if (!Particles.isStatic(pixelData[index])) {
-    [index, x, y] = executeBouyancy(index, x, y);
+    alert(`An error occured. Please report the error message to the developer (include a save if possible):\n\n${errorStr}`);
+
+    throw e;
   }
-  executeVectors(index, x, y);
 }
 
 function isInBounds(x, y) {
@@ -966,6 +976,13 @@ function swapPixel(index1, index2) {
 function log(data) {
   postMessage({
     type: 'debug',
+    data: data,
+  });
+}
+
+function alert(data) {
+  postMessage({
+    type: 'error',
     data: data,
   });
 }
