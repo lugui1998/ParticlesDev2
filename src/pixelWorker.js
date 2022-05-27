@@ -725,6 +725,7 @@ function reactionClone(index, x, y) {
     [x, y + 1],
   ];
 
+
   for (let [targetX, targetY] of adjacent) {
     const targetIndex = coordsToIndex(targetX, targetY);
 
@@ -733,21 +734,29 @@ function reactionClone(index, x, y) {
         // propagate the current cloning particle
         pixelData[targetIndex + 3] = pixelData[index + 3];
       }
-    } else if (
+      continue;
+    }
+
+    if (pixelData[index + 3] !== Particles.Air) {
+      break;
+    }
+
+    if (
       isInBounds(targetX, targetY) &&
-      pixelData[targetIndex] != Particles.Air
+      pixelData[targetIndex] !== Particles.Air
     ) {
       pixelData[index + 3] = pixelData[targetIndex];
       break;
     }
   }
 
+
   // random chance
-  if (!pixelData[index + 3] || Random.number() > 0.05) {
+  if (!pixelData[index + 3] === Particles.Air || Random.number() > 0.05) {
     return [index, x, y];
   }
 
-  shuffleArray(adjacent);
+  // shuffleArray(adjacent);
   for (let [targetX, targetY] of adjacent) {
     const targetIndex = coordsToIndex(targetX, targetY);
     if (isInBounds(targetX, targetY) && isEmpty(targetX, targetY)) {

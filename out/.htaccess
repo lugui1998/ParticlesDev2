@@ -1,0 +1,3 @@
+Header always set Access-Control-Allow-Origin *
+Header always set Cross-Origin-Opener-Policy same-origin
+Header always set Cross-Origin-Embedder-Policy require-corp
