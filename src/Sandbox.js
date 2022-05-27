@@ -309,7 +309,7 @@ class Sandbox {
 
     async loadFromCDN(fileName) {
         this.pauseState = true;
-        
+
         // request the file from https://particles-upload.lugui.in
 
         // check if the fileName is a valid name
@@ -424,6 +424,7 @@ class Sandbox {
         const brush1ElementState = InitialState[this.brush1];
 
         for (const pixel of effectedPixels) {
+
             // check if the pixel is out of bounds
             if (pixel.x < 0 || pixel.x >= this.width || pixel.y < 0 || pixel.y >= this.height) {
                 continue;
@@ -439,10 +440,16 @@ class Sandbox {
                 elState = brush0ElementState;
             }
 
+            if (
+                this.grid[index] !== Particles.Air &&
+                elState[0] !== Particles.Air &&
+                elState[0] !== Particles.Void
+            ) {
+                continue;
+            }
+
             for (let i = 0; i < pixelDataSize; i++) {
-                if (this.grid[index + i] === Particles.Air || elState[0] === Particles.Air || elState[0] === Particles.Void) {
-                    this.grid[index + i] = elState[i];
-                }
+                this.grid[index + i] = elState[i];
             }
         }
     }
