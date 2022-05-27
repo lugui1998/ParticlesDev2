@@ -6,6 +6,7 @@ if (
     alert('This page cannot run in this browser. Please use a modern browser or a recent version of Chrome.');
     throw new Error('Unsupported browser');
 }
+const Random = require('./Utils/Random');
 
 const { Names, Colors, Particles } = require('./Particles/Particles');
 const Sandbox = require('./Sandbox');
@@ -24,6 +25,7 @@ const particleName = document.getElementById('particleName');
 const brush0 = document.getElementById('brush0');
 const brush1 = document.getElementById('brush1');
 const save = document.getElementById('save');
+const share = document.getElementById('share');
 
 let rows = sandboxArea.offsetHeight;
 let columns = sandboxArea.offsetWidth;
@@ -33,6 +35,13 @@ let tilesHeight = Math.ceil(rows / 1400);
 
 const tileGridSize = [tilesWidth, tilesHeight];
 let sandbox = new Sandbox(sandboxArea, tileGridSize);
+
+// get the parameter p from the url
+const urlParams = new URLSearchParams(window.location.search);
+const p = urlParams.get('p');
+if (p) {
+    sandbox.loadFromCDN(p);
+}
 
 window.addEventListener('resize', () => {
     document.location.reload();
@@ -102,6 +111,22 @@ for (let i = 0; i < Names.length; i++) {
 
 save.onclick = async () => {
     await sandbox.save();
+}
+
+share.onclick = async () => {
+    const randomName = `${Random.string(10)}`;
+    // update the current URL without reloading the page
+    // set the GET parameter p to the fileName.png
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('p', randomName);
+    window.history.replaceState({}, '', url.href);
+
+    // add the current URL to the clipboard
+
+    navigator.clipboard.writeText(url.href);
+
+    await sandbox.share(randomName);
 }
 
 // on drop file

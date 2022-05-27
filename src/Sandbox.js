@@ -1,4 +1,4 @@
-const {deflate, inflate} = require('deflate-js');
+const { deflate, inflate } = require('deflate-js');
 
 const Tile = require('./Tile');
 
@@ -98,6 +98,7 @@ class Sandbox {
         this.sandboxArea.onmouseup = this.HandleOnMouseUp.bind(this);
         this.sandboxArea.onmouseenter = this.HandleOnMouseEnter.bind(this);
         this.sandboxArea.onmouseleave = this.HandleOnMouseLeave.bind(this);
+
     }
 
     HandleOnMouseMove(e) {
@@ -203,6 +204,27 @@ class Sandbox {
         document.body.removeChild(link);
     }
 
+    async share(randomName) {
+        const image = await this.renderImage();
+
+        // POST to the CDN
+        const cdnUrl = 'https://particles-upload.lugui.in/';
+        const formData = new FormData();
+        formData.append('image', image, `${randomName}.png`);
+
+        try {
+            const response = await fetch(cdnUrl, {
+                method: 'POST',
+                body: formData,
+            });
+            console.log(response);
+        } catch (e) {
+            console.error(e);
+        }
+
+        return randomName;
+    }
+
     async renderImage() {
         const offscreen = new OffscreenCanvas(this.width, this.height);
         const ctx = offscreen.getContext('2d', { alpha: false });
@@ -237,6 +259,8 @@ class Sandbox {
 
         const data = new Int16Array(this.grid);
         const compressedData = deflate(data);
+
+        const buff = new Buffer(compressedData);
 
         const data8 = new Uint8Array(compressedData.length * 2);
         for (let i = 0; i < compressedData.length; i++) {
@@ -281,6 +305,32 @@ class Sandbox {
 
         const blob = new Blob([buffer], { type: 'image/png' });
         return blob;
+    }
+
+    async loadFromCDN(fileName) {
+        this.pauseState = true;
+        
+        // request the file from https://particles-upload.lugui.in
+
+        // check if the fileName is a valid name
+        // a valid name has 10 characters from a-z, A-Z, 0-9
+
+        const isValidName = fileName.length === 10 && fileName.match(/^[a-zA-Z0-9]+$/);
+
+        if (!isValidName) {
+            return;
+        }
+        try {
+            const url = `https://particles-cdn.lugui.in/${fileName}.png`;
+
+            const response = await fetch(url);
+
+            // get th e image as a File
+            const imageFile = await response.blob();
+            await this.loadFile(imageFile);
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     async loadFile(file) {
@@ -381,11 +431,11 @@ class Sandbox {
             const index = this.pixelCoordsToPixelIndex(pixel.x, pixel.y);
             let elState;
 
-            if(this.rightMousePressed) {
+            if (this.rightMousePressed) {
                 elState = brush1ElementState;
             }
 
-            if(this.leftMousePressed) {
+            if (this.leftMousePressed) {
                 elState = brush0ElementState;
             }
 
@@ -515,7 +565,7 @@ class Sandbox {
     }
 
     clear() {
-        for (let i = 0; i < this.grid.length; i+= pixelDataSize) {
+        for (let i = 0; i < this.grid.length; i += pixelDataSize) {
             this.grid[i] = InitialState[Particles.Air][0];
             this.grid[i + 1] = InitialState[Particles.Air][1];
             this.grid[i + 2] = InitialState[Particles.Air][2];
