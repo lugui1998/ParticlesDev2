@@ -416,6 +416,61 @@ function reactionDust(index, x, y) {
     }
   }
 
+  const prevX = x;
+  const prevY = y;
+
+  let hasMoved = false;
+  [index, x, y, hasMoved] = quickSand(index, x, y, 3);
+
+  if (hasMoved) {
+    pixelData[index + 3]++;
+
+    // update the pixels on the sides and above
+    const adjacent = [
+      [prevX - 1, prevY],
+      [prevX + 1, prevY],
+      [prevX, prevY - 1],
+    ];
+
+    for (let [targetX, targetY] of adjacent) {
+      const aboveIndex = coordsToIndex(targetX, targetY);
+      if (isInBounds(x, y - 1) && pixelData[aboveIndex] === Particles.Dust) {
+        pixelData[aboveIndex + 3]++;
+      }
+    }
+
+  } else {
+    pixelData[index + 3]--;
+  }
+
+
+  if (pixelData[index + 3] <= 0) return [index, x, y];
+
+  // randomchance to spread
+  if (Random.number() < 0.01) {
+
+    // spread to adjacent pixels
+    const direction = Random.direction();
+    i = 0;
+    do {
+      if (isEmpty(x + direction, y)) {
+        x += direction;
+        const targetIndex = coordsToIndex(x, y);
+        movePixel(index, targetIndex);
+        index = targetIndex;
+      }
+    } while (++i <= 1);
+  }
+
+  return [index, x, y];
+
+  /*
+  
+ 
+  
+ 
+  
+ 
   let i = 0;
   let canMoveDown = true;
   do {
@@ -425,9 +480,9 @@ function reactionDust(index, x, y) {
       if (isInBounds(x, y - 1) && pixelData[aboveIndex] === Particles.Dust) {
         pixelData[aboveIndex + 3]++;
       }
-
+ 
       pixelData[index + 3] += 2;
-
+ 
       y++;
       const targetIndex = coordsToIndex(x, y);
       movePixel(index, targetIndex);
@@ -437,9 +492,9 @@ function reactionDust(index, x, y) {
       canMoveDown = false;
     }
   } while (++i <= 3 && canMoveDown);
-
+ 
   if (pixelData[index + 3] <= 0) return [index, x, y];
-
+ 
   // chooses left or right
   const direction = Random.direction();
   if (isEmpty(x + direction, y)) {
@@ -455,8 +510,9 @@ function reactionDust(index, x, y) {
       swapPixel(x, y, x + direction, y);
     }
   }
-
+ 
   return [index, x, y];
+  */
 }
 
 function reactionStone(index, x, y) {
@@ -510,7 +566,7 @@ function reactionWater(index, x, y) {
     return [index, x, y];
   }
 
-  [index, x, y] = easyFluid(index, x, y, 3);
+  [index, x, y] = quickFluid(index, x, y, 3);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -599,7 +655,7 @@ function reactionLava(index, x, y) {
     }
   }
 
-  [index, x, y] = easyFluid(index, x, y, 3);
+  [index, x, y] = quickFluid(index, x, y, 3);
 
   // spread to adjacent pixels
   if (Random.number() < 0.1) {
@@ -855,7 +911,7 @@ function reactionAcid(index, x, y) {
     }
   }
 
-  [index, x, y] = easyFluid(index, x, y, 3);
+  [index, x, y] = quickFluid(index, x, y, 3);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -945,14 +1001,16 @@ function swapPixel(index1, index2) {
 
 /* physics shortcuts */
 
-function easyFluid(index, x, y, maxMoves) {
-  i = 0;
+function quickSand(index, x, y, maxMoves) {
+  let hasMoved = false;
+  let i = 0;
   do {
     if (isEmpty(x, y + 1)) {
       y++;
       const targetIndex = coordsToIndex(x, y);
       movePixel(index, targetIndex);
       index = targetIndex;
+      hasMoved = true;
     } else {
       direction = Random.direction();
       if (isEmpty(x + direction, y + 1)) {
@@ -960,6 +1018,7 @@ function easyFluid(index, x, y, maxMoves) {
         const targetIndex = coordsToIndex(x, y);
         movePixel(index, targetIndex);
         index = targetIndex;
+        hasMoved = true;
       } else {
         direction *= -1;
         if (isEmpty(x + direction, y + 1)) {
@@ -967,6 +1026,40 @@ function easyFluid(index, x, y, maxMoves) {
           const targetIndex = coordsToIndex(x, y);
           movePixel(index, targetIndex);
           index = targetIndex;
+          hasMoved = true;
+        }
+      }
+    }
+  } while (++i <= maxMoves);
+  return [index, x, y, hasMoved];
+}
+
+function quickFluid(index, x, y, maxMoves) {
+  let hasMoved = false;
+  let i = 0;
+  do {
+    if (isEmpty(x, y + 1)) {
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
+      hasMoved = true;
+    } else {
+      direction = Random.direction();
+      if (isEmpty(x + direction, y + 1)) {
+        x += direction;
+        const targetIndex = coordsToIndex(x, y);
+        movePixel(index, targetIndex);
+        index = targetIndex;
+        hasMoved = true;
+      } else {
+        direction *= -1;
+        if (isEmpty(x + direction, y + 1)) {
+          x += direction;
+          const targetIndex = coordsToIndex(x, y);
+          movePixel(index, targetIndex);
+          index = targetIndex;
+          hasMoved = true;
         } else {
           direction = Random.direction();
           if (isEmpty(x + direction, y)) {
@@ -974,6 +1067,7 @@ function easyFluid(index, x, y, maxMoves) {
             const targetIndex = coordsToIndex(x, y);
             movePixel(index, targetIndex);
             index = targetIndex;
+            hasMoved = true;
           } else {
             direction *= -1;
             if (isEmpty(x + direction, y)) {
@@ -981,13 +1075,14 @@ function easyFluid(index, x, y, maxMoves) {
               const targetIndex = coordsToIndex(x, y);
               movePixel(index, targetIndex);
               index = targetIndex;
+              hasMoved = true;
             }
           }
         }
       }
     }
   } while (++i <= maxMoves);
-  return [index, x, y];
+  return [index, x, y, hasMoved];
 }
 
 /* debug */
