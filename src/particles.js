@@ -218,11 +218,12 @@ window.onload = async () => {
 
     for (let i = 0; i < data.length; i++) {
         const fileName = data[i];
+        const nameWithoutExtension = fileName.split('.')[0];
         
         // create a div
         const item = document.createElement('div');
         item.classList.add('sidebarItem');
-        item.textContent = fileName;
+        item.textContent = nameWithoutExtension;
 
         // add the image to the div
         const img = document.createElement('img');
@@ -234,8 +235,7 @@ window.onload = async () => {
         sidebar.appendChild(item);
 
         // on click image
-        img.onclick = async () => {
-            const nameWithoutExtension = fileName.split('.')[0];
+        item.onclick = async () => {
             await sandbox.loadFromCDN(nameWithoutExtension);
         }
 
