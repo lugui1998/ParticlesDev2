@@ -215,7 +215,7 @@ class Sandbox {
         const image = await this.renderImage();
 
         // POST to the CDN
-        const cdnUrl = 'https://particles-upload.lugui.in/';
+        const cdnUrl = 'https://particles-api.lugui.in/';
         const formData = new FormData();
         formData.append('image', image, `${randomName}.png`);
 
@@ -317,7 +317,7 @@ class Sandbox {
     async loadFromCDN(fileName) {
         this.pauseState = true;
 
-        // request the file from https://particles-upload.lugui.in
+        // request the file from https://particles-api.lugui.in
 
         // check if the fileName is a valid name
         // a valid name has 10 characters from a-z, A-Z, 0-9
