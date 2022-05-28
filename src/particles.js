@@ -44,7 +44,9 @@ window.onload = async () => {
     // get the parameter p from the url
     const urlParams = new URLSearchParams(window.location.search);
     const p = urlParams.get('p');
-    await sandbox.loadFromCDN(p);
+    if(p){
+        await sandbox.loadFromCDN(p);
+    }
 
     window.addEventListener('resize', () => {
         document.location.reload();
