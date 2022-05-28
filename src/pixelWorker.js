@@ -379,7 +379,7 @@ function reactionDust(index, x, y) {
       )
     ) {
       // random chance
-      if (Random.number() < 0.46) {
+      if (Random.number() < 0.63) {
         // set the dust to fire
         pixelData[index] = Particles.Fire;
         return [index, x, y];
