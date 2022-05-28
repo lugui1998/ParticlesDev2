@@ -13,6 +13,7 @@ const pixelDataSize = 4;
 class Sandbox {
     width = 0;
     height = 0;
+    sidebarSize = 0;
     tileGridSize = 0;
 
     physicsStartTime = 0;
@@ -40,12 +41,14 @@ class Sandbox {
 
     constructor(
         sandboxArea,
-        tileGridSize = [4, 2]
+        tileGridSize = [4, 2],
+        sidebarSize
     ) {
         this.width = sandboxArea.offsetWidth;
         this.height = sandboxArea.offsetHeight;
         this.tileGridSize = tileGridSize;
         this.sandboxArea = sandboxArea;
+        this.sidebarSize = sidebarSize;
     }
 
     async start() {
@@ -83,7 +86,7 @@ class Sandbox {
 
                 // set canvas position on screen
                 this.canvas.style.position = 'absolute';
-                this.canvas.style.left = `${x}px`;
+                this.canvas.style.left = `${x + this.sidebarSize}px`;
                 this.canvas.style.top = `${y}px`;
 
                 sandboxArea.appendChild(this.canvas);
@@ -118,7 +121,7 @@ class Sandbox {
             y: this.mousePos.y,
         }
         this.mousePos = {
-            x: e.clientX,
+            x: e.clientX - this.sidebarSize,
             y: e.clientY,
         };
 
@@ -149,7 +152,7 @@ class Sandbox {
         // if it is clicked, it should start with a stroke
         if (this.leftMousePressed || this.rightMousePressed) {
             this.mousePos = {
-                x: e.clientX,
+                x: e.clientX - this.sidebarSize,
                 y: e.clientY,
             }
             this.brushStroke(this.mousePos, this.mousePos);
@@ -160,7 +163,7 @@ class Sandbox {
         // If it was clicked, then it should make a stroke before ending the mouse click
         if (this.leftMousePressed || this.rightMousePressed) {
             this.brushStroke(this.mousePos, {
-                x: e.clientX,
+                x: e.clientX - this.sidebarSize,
                 y: e.clientY,
             });
         }

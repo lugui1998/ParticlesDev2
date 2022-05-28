@@ -28,6 +28,7 @@ window.onload = async () => {
     const brush1 = document.getElementById('brush1');
     const save = document.getElementById('save');
     const share = document.getElementById('share');
+    const sidebar = document.getElementById('sidebar');
 
     let rows = sandboxArea.offsetHeight;
     let columns = sandboxArea.offsetWidth;
@@ -35,9 +36,10 @@ window.onload = async () => {
     let tilesWidth = Math.floor(columns / 400);
     let tilesHeight = Math.ceil(rows / 1400);
 
+    const sidebarSize = sidebar.offsetWidth;
 
     const tileGridSize = [tilesWidth, tilesHeight];
-    let sandbox = new Sandbox(sandboxArea, tileGridSize);
+    let sandbox = new Sandbox(sandboxArea, tileGridSize, sidebarSize);
 
     await sandbox.start();
 
@@ -206,4 +208,36 @@ window.onload = async () => {
         fps.textContent = `${sandbox.getPauseState() == false ? Math.floor(sandbox.getPhysicsFPS()) : '00'}`;
 
     }, 100);
+
+    // request the file list from http://particles-api.lugui.in
+    const response = await fetch('http://particles-api.lugui.in');
+    const data = await response.json();
+
+    // remove everything from sidebar
+    sidebar.innerHTML = '';
+
+    for (let i = 0; i < data.length; i++) {
+        const fileName = data[i];
+        
+        // create a div
+        const item = document.createElement('div');
+        item.classList.add('sidebarItem');
+        item.textContent = fileName;
+
+        // add the image to the div
+        const img = document.createElement('img');
+        img.classList.add('sidebarThumbnail');
+        img.src = `https://particles-cdn.lugui.in/${fileName}`;
+        item.appendChild(img);
+
+        // add the div to the sidebar
+        sidebar.appendChild(item);
+
+        // on click image
+        img.onclick = async () => {
+            const nameWithoutExtension = fileName.split('.')[0];
+            await sandbox.loadFromCDN(nameWithoutExtension);
+        }
+
+    }
 }
