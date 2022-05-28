@@ -60,6 +60,12 @@ function initPixelGrid(data) {
   }
 
   ctx = canvas.getContext('2d', { alpha: false });
+
+  postMessage({
+    type: 'initDone',
+  });
+
+
   requestAnimationFrame(render);
 }
 

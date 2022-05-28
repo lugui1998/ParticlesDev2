@@ -11,7 +11,6 @@ const pixelDataSize = 4;
 
 
 class Sandbox {
-
     width = 0;
     height = 0;
     tileGridSize = 0;
@@ -41,13 +40,15 @@ class Sandbox {
 
     constructor(
         sandboxArea,
-        tileGridSize = [4, 2],
+        tileGridSize = [4, 2]
     ) {
         this.width = sandboxArea.offsetWidth;
         this.height = sandboxArea.offsetHeight;
         this.tileGridSize = tileGridSize;
         this.sandboxArea = sandboxArea;
+    }
 
+    async start() {
         // allocate a sahred buffer
         this.sharedBuffer = new SharedArrayBuffer(this.width * this.height * 2 * pixelDataSize);
         this.grid = new Int16Array(this.sharedBuffer);
@@ -56,6 +57,9 @@ class Sandbox {
         const tileHeight = Math.ceil(this.height / this.tileGridSize[1]);
         let tileIndex = 0;
         let x = 0;
+
+        const promises = [];
+
         do {
             let endX = x + tileWidth;
             let y = 0;
@@ -84,8 +88,10 @@ class Sandbox {
 
                 sandboxArea.appendChild(this.canvas);
 
-                this.tiles.push(new Tile(tileIndex++, this.canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height));
+                const tile = new Tile(tileIndex++, this.canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height);
+                promises.push(tile.start());
 
+                this.tiles.push(tile);
                 y = endY;
             } while (y < this.height);
             x = endX;
@@ -99,6 +105,7 @@ class Sandbox {
         this.sandboxArea.onmouseenter = this.HandleOnMouseEnter.bind(this);
         this.sandboxArea.onmouseleave = this.HandleOnMouseLeave.bind(this);
 
+        await Promise.all(promises);
     }
 
     HandleOnMouseMove(e) {
