@@ -329,31 +329,21 @@ function reactionOil(index, x, y) {
     }
   }
 
+  [index, x, y] = quickFluid(index, x, y, 3);
 
-  let i = 0;
-  let direction = Random.direction() * 2;
-
-  do {
-    const targetIndex = coordsToIndex(x + direction, y);
-    if (isEmpty(x + direction, y) || (pixelData[targetIndex] != Particles.Oil && Particles.isFluid(pixelData[targetIndex]))) {
-      x += direction;
-      swapPixel(index, targetIndex);
-      index = targetIndex;
-    }
-  } while (++i < 1);
-
-  i = 0;
-  let canMove = true;
-  do {
-    if (isEmpty(x, y + 1)) {
-      y++;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
-      index = targetIndex;
-    } else {
-      canMove = false;
-    }
-  } while (++i < 1 && canMove);
+  // spread to adjacent pixels
+  if (Random.number() < 0.1) {
+    const direction = Random.direction();
+    i = 0;
+    do {
+      if (isEmpty(x + direction, y)) {
+        x += direction;
+        const targetIndex = coordsToIndex(x, y);
+        movePixel(index, targetIndex);
+        index = targetIndex;
+      }
+    } while (++i <= 1);
+  }
 
   return [index, x, y];
 }
