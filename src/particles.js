@@ -210,7 +210,7 @@ window.onload = async () => {
     }, 100);
 
     // request the file list from http://particles-api.lugui.in
-    const response = await fetch('http://particles-api.lugui.in');
+    const response = await fetch('https://particles-api.lugui.in');
     const data = await response.json();
 
     // remove everything from sidebar
