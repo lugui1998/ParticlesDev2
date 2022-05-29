@@ -227,12 +227,12 @@ class Sandbox {
                 method: 'POST',
                 body: formData,
             });
-            console.log(response);
         } catch (e) {
             console.error(e);
+            return false;
         }
 
-        return randomName;
+        return true;
     }
 
     async renderImage() {

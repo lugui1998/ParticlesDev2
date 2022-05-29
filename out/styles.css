@@ -19,11 +19,11 @@ body {
 #sidebar {
     width: 260px;
     height: 100%;
-    overflow:auto;
+    overflow: auto;
     overflow-x: hidden;
     background-color: #0e0e0e;
     outline-offset: -2px;
-    outline:rgb(39, 39, 39) solid 2px;
+    outline: rgb(39, 39, 39) solid 2px;
     direction: rtl;
 }
 
@@ -47,7 +47,7 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-   
+
 }
 
 #sandbox {
@@ -120,6 +120,10 @@ footer {
     padding: 1px;
 }
 
+.inline {
+    display: flex;
+}
+
 .settingItem {
     cursor: pointer;
     padding: 6px;
@@ -170,40 +174,63 @@ footer {
 /* width */
 ::-webkit-scrollbar {
     width: 10px;
-  }
-  
-  /* Track */
-  ::-webkit-scrollbar-track {
-    background: #292929;
-  }
-  
-  /* Handle */
-  ::-webkit-scrollbar-thumb {
-    background: #888;
-  }
-  
-  /* Handle on hover */
-  ::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
+}
 
-  .loader {
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #3498db; /* Blue */
+/* Track */
+::-webkit-scrollbar-track {
+    background: #292929;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.loader {
+    border: 8px solid #f3f3f3;
+    /* Light grey */
+    border-top: 8px solid #3498db;
+    /* Blue */
     border-radius: 50%;
     width: 30px;
     height: 30px;
     animation: spin 2s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  #share {
-    transition: all ease-in-out 0.5s;
-  }
+}
 
-  #share:active{
-    background-color: #ddd;
-  }
+.small-loader {
+    margin-top: 5px;
+    float: left;
+    border: 2px solid #f3f3f3;
+    /* Light grey */
+    border-top: 2px solid #3498db;
+    /* Blue */
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.disableSelection {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    outline: 0;
+}

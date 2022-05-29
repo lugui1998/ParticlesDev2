@@ -28,6 +28,7 @@ window.onload = async () => {
     const brush1 = document.getElementById('brush1');
     const save = document.getElementById('save');
     const share = document.getElementById('share');
+    const shareSpinner = document.getElementById('shareSpinner');
     const sidebar = document.getElementById('sidebar');
 
     let rows = sandboxArea.offsetHeight;
@@ -133,7 +134,12 @@ window.onload = async () => {
 
         navigator.clipboard.writeText(url.href);
 
-        await sandbox.share(randomName);
+        shareSpinner.classList.add('small-loader');
+        try {
+            await sandbox.share(randomName);
+        } finally {
+            shareSpinner.classList.remove('small-loader');
+        }
     }
 
     // on drop file
@@ -237,6 +243,9 @@ window.onload = async () => {
         // on click image
         item.onclick = async () => {
             await sandbox.loadFromCDN(nameWithoutExtension);
+            const url = new URL(window.location.href);
+            url.searchParams.set('p', nameWithoutExtension);
+            window.history.replaceState({}, '', url.href);
         }
 
     }
