@@ -400,13 +400,23 @@ class Sandbox {
 
         this.clear();
 
+        // fills the entire grid with Block
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                const index = this.pixelCoordsToPixelIndex(x, y);
+                for (let i = 0; i < pixelDataSize; i++) {
+                    this.grid[index + i] = InitialState[Particles.Block][i];
+                }
+            }
+        }
+
         for (let x = 0; x < maxWidth; x++) {
             for (let y = 0; y < maxHeight; y++) {
                 const index = this.pixelCoordsToPixelIndex(x, y);
                 const filePixelIndex = (x + y * metadata.width) * pixelDataSize;
 
                 for (let i = 0; i < pixelDataSize; i++) {
-                    this.grid[index + i] = parseInt(decompressedData[filePixelIndex + i]);
+                    this.grid[index + i] = decompressedData[filePixelIndex + i];
                 }
 
             }
