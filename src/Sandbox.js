@@ -7,7 +7,7 @@ const Random = require('./Utils/Random');
 const QuickBits = require('./Utils/QuickBits');
 
 
-const pixelDataSize = 4;
+const pixelDataSize = 8;
 
 
 class Sandbox {
@@ -199,7 +199,9 @@ class Sandbox {
             for (const tile of this.tiles) {
                 tile.update();
             }
+            return true;
         }
+        return false;
     }
 
     async save() {

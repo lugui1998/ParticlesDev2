@@ -47,7 +47,7 @@ window.onload = async () => {
     // get the parameter p from the url
     const urlParams = new URLSearchParams(window.location.search);
     const p = urlParams.get('p');
-    if(p){
+    if (p) {
         await sandbox.loadFromCDN(p);
     }
 
@@ -197,16 +197,15 @@ window.onload = async () => {
     window.requestAnimationFrame(update);
 
     setInterval(() => {
-        // cap frames per second
-        if (sandbox.getPhysicsFPS() < 65) {
+        // min FPS
+        sandbox.update();
+    }, 50);
+
+    setInterval(() => {
+        if (sandbox.getPhysicsFPS() < 20) {
             sandbox.update();
         }
     }, 1);
-
-    setInterval(() => {
-        // min FPS
-        sandbox.update();
-    }, 20);
 
     // Update the menu on less improtant stuff
     setInterval(async () => {
@@ -225,7 +224,7 @@ window.onload = async () => {
     for (let i = 0; i < data.length; i++) {
         const fileName = data[i];
         const nameWithoutExtension = fileName.split('.')[0];
-        
+
         // create a div
         const item = document.createElement('div');
         item.classList.add('sidebarItem');

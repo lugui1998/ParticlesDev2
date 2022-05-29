@@ -3,7 +3,9 @@ const {
   Particles,
   Density,
   InitialState,
-  Movements,
+  Corrosible,
+  Static,
+  Fluid,
 } = require('./Particles/Particles');
 const Random = require('./Utils/Random');
 
@@ -87,7 +89,6 @@ function shuffleArray(array) {
 }
 
 function render() {
-
   let imagedata = ctx.createImageData(width, height);
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
@@ -157,7 +158,7 @@ function processPixel(x, y) {
   try {
     [index, x, y] = processReactions(index, x, y);
 
-    if (!Particles.isStatic(pixelData[index])) {
+    if (!Static[pixelData[index]]) {
       [index, x, y] = executeBouyancy(index, x, y);
     }
     executeVectors(index, x, y);
@@ -245,7 +246,7 @@ function executeVectors(index, x, y) {
 function executeBouyancy(index, x, y) {
   // check if the pixel should sink down
   const indexBellow = coordsToIndex(x, y + 1);
-  if (!isEmpty(x, y + 1) && Particles.isFluid(pixelData[indexBellow])) {
+  if (!isEmpty(x, y + 1) && Fluid[pixelData[indexBellow]]) {
     if (shouldSink(index, indexBellow)) {
       swapPixel(index, indexBellow);
       y++;
@@ -255,7 +256,7 @@ function executeBouyancy(index, x, y) {
 
   // check if the pixel should float up
   const indexAbove = coordsToIndex(x, y - 1);
-  if (!isEmpty(indexAbove) && Particles.isFluid(pixelData[indexAbove])) {
+  if (!isEmpty(indexAbove) && Fluid[pixelData[indexAbove]]) {
     if (shouldSink(indexAbove, index)) {
       swapPixel(indexAbove, index);
       y--;
@@ -283,7 +284,12 @@ function processReactions(index, x, y) {
     case Particles.AcidVapor: { return reactionAcidVapor(index, x, y); }
     case Particles.Clone: { return reactionClone(index, x, y); }
     case Particles.Oil: { return reactionOil(index, x, y); }
+    case Particles.Block: { return reactionBlock(index, x, y); }
   }
+}
+
+function reactionBlock(index, x, y) {
+  return [index, x, y];
 }
 
 function reactionOil(index, x, y) {
@@ -416,7 +422,7 @@ function reactionDust(index, x, y) {
   const prevY = y;
 
   let hasMoved = false;
-  [index, x, y, hasMoved] = quickSand(index, x, y, 3);
+  [index, x, y, hasMoved] = quickSand(index, x, y, 4);
 
   if (hasMoved) {
     pixelData[index + 3]++;
@@ -459,56 +465,6 @@ function reactionDust(index, x, y) {
   }
 
   return [index, x, y];
-
-  /*
-  
- 
-  
- 
-  
- 
-  let i = 0;
-  let canMoveDown = true;
-  do {
-    if (isEmpty(x, y + 1)) {
-      // moving down also gives energy to the dust above
-      const aboveIndex = coordsToIndex(x, y - 1);
-      if (isInBounds(x, y - 1) && pixelData[aboveIndex] === Particles.Dust) {
-        pixelData[aboveIndex + 3]++;
-      }
- 
-      pixelData[index + 3] += 2;
- 
-      y++;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
-      index = targetIndex;
-    } else {
-      pixelData[index + 3] -= 2;
-      canMoveDown = false;
-    }
-  } while (++i <= 3 && canMoveDown);
- 
-  if (pixelData[index + 3] <= 0) return [index, x, y];
- 
-  // chooses left or right
-  const direction = Random.direction();
-  if (isEmpty(x + direction, y)) {
-    x += direction;
-    const targetIndex = coordsToIndex(x, y);
-    movePixel(index, targetIndex);
-    index = targetIndex;
-  } else {
-    // dust can move sideways even on liquids
-    // check if the pixel in the desired spot is liquid
-    if (Particles.isFluid(pixelData[coordsToIndex(x + direction, y)])) {
-      // it is a liquid, in that case swap instead of moving
-      swapPixel(x, y, x + direction, y);
-    }
-  }
- 
-  return [index, x, y];
-  */
 }
 
 function reactionStone(index, x, y) {
@@ -562,7 +518,7 @@ function reactionWater(index, x, y) {
     return [index, x, y];
   }
 
-  [index, x, y] = quickFluid(index, x, y, 3);
+  [index, x, y] = quickFluid(index, x, y, 6);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -821,10 +777,7 @@ function reactionAcidVapor(index, x, y) {
   for (let [targetX, targetY] of adjacent) {
     const targetIndex = coordsToIndex(targetX, targetY);
     if (
-      pixelData[targetIndex] !== Particles.Acid &&
-      pixelData[targetIndex] !== Particles.AcidVapor &&
-      pixelData[targetIndex] !== Particles.Void &&
-      pixelData[targetIndex] !== Particles.Clone &&
+      Corrosible[pixelData[targetIndex]] &&
       isInBounds(targetX, targetY) &&
       !isEmpty(targetX, targetY)
     ) {
@@ -884,10 +837,7 @@ function reactionAcid(index, x, y) {
   for (let [targetX, targetY] of adjacent) {
     const targetIndex = coordsToIndex(targetX, targetY);
     if (
-      pixelData[targetIndex] !== Particles.Acid &&
-      pixelData[targetIndex] !== Particles.AcidVapor &&
-      pixelData[targetIndex] !== Particles.Void &&
-      pixelData[targetIndex] !== Particles.Clone &&
+      Corrosible[pixelData[targetIndex]] &&
       isInBounds(targetX, targetY) &&
       !isEmpty(targetX, targetY)
     ) {
@@ -907,7 +857,7 @@ function reactionAcid(index, x, y) {
     }
   }
 
-  [index, x, y] = quickFluid(index, x, y, 3);
+  [index, x, y] = quickFluid(index, x, y, 6);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -999,6 +949,7 @@ function swapPixel(index1, index2) {
 
 function quickSand(index, x, y, maxMoves) {
   let hasMoved = false;
+  let cantMove = false;
   let i = 0;
   do {
     if (isEmpty(x, y + 1)) {
@@ -1011,6 +962,7 @@ function quickSand(index, x, y, maxMoves) {
       direction = Random.direction();
       if (isEmpty(x + direction, y + 1)) {
         x += direction;
+        y++;
         const targetIndex = coordsToIndex(x, y);
         movePixel(index, targetIndex);
         index = targetIndex;
@@ -1019,19 +971,23 @@ function quickSand(index, x, y, maxMoves) {
         direction *= -1;
         if (isEmpty(x + direction, y + 1)) {
           x += direction;
+          y++;
           const targetIndex = coordsToIndex(x, y);
           movePixel(index, targetIndex);
           index = targetIndex;
           hasMoved = true;
+        } else {
+          cantMove = true;
         }
       }
     }
-  } while (++i <= maxMoves);
+  } while (++i <= maxMoves && !cantMove);
   return [index, x, y, hasMoved];
 }
 
 function quickFluid(index, x, y, maxMoves) {
   let hasMoved = false;
+  let cantMove = false;
   let i = 0;
   do {
     if (isEmpty(x, y + 1)) {
@@ -1044,6 +1000,7 @@ function quickFluid(index, x, y, maxMoves) {
       direction = Random.direction();
       if (isEmpty(x + direction, y + 1)) {
         x += direction;
+        y++;
         const targetIndex = coordsToIndex(x, y);
         movePixel(index, targetIndex);
         index = targetIndex;
@@ -1052,6 +1009,7 @@ function quickFluid(index, x, y, maxMoves) {
         direction *= -1;
         if (isEmpty(x + direction, y + 1)) {
           x += direction;
+          y++;
           const targetIndex = coordsToIndex(x, y);
           movePixel(index, targetIndex);
           index = targetIndex;
@@ -1072,16 +1030,27 @@ function quickFluid(index, x, y, maxMoves) {
               movePixel(index, targetIndex);
               index = targetIndex;
               hasMoved = true;
+            } else {
+              cantMove = true;
             }
           }
         }
       }
     }
-  } while (++i <= maxMoves);
+  } while (++i <= maxMoves && !cantMove);
   return [index, x, y, hasMoved];
 }
 
 /* debug */
+
+// log the bytes of the pixel
+function logPixel(index) {
+  let data = '';
+  for (let i = 0; i < pixelDataSize; i++) {
+    data += pixelData[index + i] + ' ';
+  }
+  console.log(data);
+}
 
 function log(data) {
   postMessage({
