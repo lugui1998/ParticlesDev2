@@ -1,13 +1,18 @@
 
 class Tile {
 
-    events = {};
+    events = {
+        ready: [],
+        errorReload: [],
+    }
 
     inUpdate = false;
     worker = null;
     tileIndex = -1;
     canvas = null;
     sharedBuffer = null;
+    sharedFrameCountBuffer = null;
+    sharedFrameTimesBuffer = null;
     startX = 0;
     startY = 0;
     endX = 0;
@@ -16,15 +21,12 @@ class Tile {
     width = 0;
     height = 0;
 
-    constructor(tileIndex, canvas, sharedBuffer, startX, startY, endX, endY, pixelDataSize, width, height) {
-
-        this.events = {
-            ready: []
-        };
-
+    constructor(tileIndex, canvas, sharedFrameTimesBuffer, sharedFrameCountBuffer, sharedBuffer, startX, startY, endX, endY, pixelDataSize, width, height) {
         this.tileIndex = tileIndex;
         this.canvas = canvas;
         this.sharedBuffer = sharedBuffer;
+        this.sharedFrameCountBuffer = sharedFrameCountBuffer;
+        this.sharedFrameTimesBuffer = sharedFrameTimesBuffer;
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
@@ -42,6 +44,9 @@ class Tile {
             type: 'init',
             data: {
                 canvas: offscreenCanvas,
+                tileIndex: this.tileIndex,
+                sharedFrameCountBuffer: this.sharedFrameCountBuffer,
+                sharedFrameTimesBuffer: this.sharedFrameTimesBuffer,
                 sharedBuffer: this.sharedBuffer,
                 startX: this.startX,
                 startY: this.startY,
@@ -62,20 +67,12 @@ class Tile {
 
     }
 
-    update() {
-        if (this.inUpdate) return;
-        this.inUpdate = true;
-        this.worker.postMessage({
-            type: 'doPhysics',
-        });
-    }
-
     handleWorkerMessage(e) {
         const { type, data } = e.data;
         switch (type) {
             case 'debug': { console.log(data); break; }
-            case 'error': { alert(data); break; }
-            case 'donePhysics': { this.inUpdate = false; break; }
+            case 'error': { alert(data); this.emit('errorReload', null); break; }
+            case 'donePhysics': { this.doneFrame(data); break; }
             case 'initDone': { this.emit('ready', null); break; }
         }
 

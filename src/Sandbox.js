@@ -21,6 +21,10 @@ class Sandbox {
 
     sharedBuffer = null;
     tiles = [];
+    sharedFrameCountBuffer = null;
+    tileFrameCount = [];
+    sharedFrameTimesBuffer = null;
+    tileFrameTimes = [];
 
     mousePrevPos = {};
     mousePos = { x: 0, y: 0 };
@@ -61,6 +65,18 @@ class Sandbox {
         let tileIndex = 0;
         let x = 0;
 
+        const tileColsCount = this.tileGridSize[0];
+        const tileRowsCount = this.tileGridSize[1];
+        
+        const tilesCount = tileColsCount * tileRowsCount;
+
+        this.sharedFrameCountBuffer = new SharedArrayBuffer(tilesCount * 4);
+        this.tileFrameCount = new Int32Array(this.sharedFrameCountBuffer);
+
+        this.sharedFrameTimesBuffer = new SharedArrayBuffer(tilesCount * 4);
+        this.tileFrameTimes = new Float32Array(this.sharedFrameTimesBuffer);
+        
+
         const promises = [];
 
         do {
@@ -91,8 +107,15 @@ class Sandbox {
 
                 sandboxArea.appendChild(this.canvas);
 
-                const tile = new Tile(tileIndex++, this.canvas, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height);
+                const tile = new Tile(tileIndex++, this.canvas, this.sharedFrameTimesBuffer, this.sharedFrameCountBuffer, this.sharedBuffer, x, y, endX, endY, pixelDataSize, this.width, this.height);
+
+                tile.on('errorReload', async () => {
+                    await this.reload();
+                });
+
                 promises.push(tile.start());
+
+               
 
                 this.tiles.push(tile);
                 y = endY;
@@ -109,6 +132,10 @@ class Sandbox {
         this.sandboxArea.onmouseleave = this.HandleOnMouseLeave.bind(this);
 
         await Promise.all(promises);
+
+        setInterval(() => {
+            this.updateBrush();
+        }, 1);
     }
 
     HandleOnMouseMove(e) {
@@ -172,36 +199,11 @@ class Sandbox {
         this.rightMousePressed = false;
     }
 
-    update() {
+    updateBrush() {
         if (this.leftMousePressed || this.rightMousePressed) {
             this.brushStroke(this.mousePos, this.mousePrevPos);
         }
         this.mousePrevPos = JSON.parse(JSON.stringify(this.mousePos)); // copy the data without reference
-
-        let inUpdate = false;
-        for (const tile of this.tiles) {
-            inUpdate |= tile.inUpdate;
-        }
-
-        if (!inUpdate && !this.pauseState) {
-            // calculate FPS
-            const timeNow = performance.now();
-            const lastFrameTime = timeNow - this.physicsStartTime;
-            this.lastFramesTimes.push(lastFrameTime);
-
-            if (this.lastFramesTimes.length > 100) {
-                this.lastFramesTimes.shift();
-            }
-
-            this.physicsStartTime = timeNow;
-
-            // Send update message to workers
-            for (const tile of this.tiles) {
-                tile.update();
-            }
-            return true;
-        }
-        return false;
     }
 
     async save() {
@@ -395,8 +397,8 @@ class Sandbox {
         this.loadPixelData(decompressedData, metadata);
     }
 
-        
-    loadPixelData(data, metadata){
+
+    loadPixelData(data, metadata) {
         const maxWidth = Math.min(this.width, metadata.width);
         const maxHeight = Math.min(this.height, metadata.height);
 
@@ -423,6 +425,12 @@ class Sandbox {
 
             }
         }
+    }
+
+    async reload() {
+        const [data, metadata] = this.end();
+        await this.start();
+        await this.loadPixelData(data, metadata);
     }
 
     end() {
@@ -585,18 +593,14 @@ class Sandbox {
         });
     }
 
-    getPhysicsFPS() {
-        // calculate the FPS based on the average of the time in the lastFramesTimes array
-        let sum = 0;
-        for (const time of this.lastFramesTimes) {
-            sum += time;
-        }
-        const fps = 1000 / (sum / this.lastFramesTimes.length);
-        if (isNaN(fps)) {
+    getFPS() {
+        // get the min value of tileFrameTimes
+        const min = Math.min(...this.tileFrameTimes);
+        const roundValue = Math.floor(1000 / min);
+        if(isNaN(roundValue)){
             return 0;
         }
-        return fps;
-
+        return roundValue;
     }
 
     getPauseState() {

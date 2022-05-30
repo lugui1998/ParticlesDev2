@@ -123,7 +123,6 @@ window.onload = async () => {
             sandbox.setBrushParticle(1, Particles.getId(name));
             e.preventDefault();
         };
-
     }
 
     save.onclick = async () => {
@@ -198,30 +197,13 @@ window.onload = async () => {
         brush1.style.left = `${selectedParticle1.offsetLeft - 6}px`;
         brush1.style.top = `${selectedParticle1.offsetTop}px`;
 
-        // update fps
-        fps.textContent = `FPS:${Math.floor(Math.round(sandbox.getPhysicsFPS()))}`;
+        pause.textContent = sandbox.getPauseState() ? 'Play' : 'Pause';
+        fps.textContent = `${sandbox.getPauseState() == false ? Math.floor(sandbox.getFPS()) : '00'}`;
+
         window.requestAnimationFrame(update);
     }
 
     window.requestAnimationFrame(update);
-
-    setInterval(() => {
-        // min FPS
-        sandbox.update();
-    }, 50);
-
-    setInterval(() => {
-        if (sandbox.getPhysicsFPS() < 20) {
-            sandbox.update();
-        }
-    }, 1);
-
-    // Update the menu on less improtant stuff
-    setInterval(async () => {
-        pause.textContent = sandbox.getPauseState() ? 'Play' : 'Pause';
-        fps.textContent = `${sandbox.getPauseState() == false ? Math.floor(sandbox.getPhysicsFPS()) : '00'}`;
-
-    }, 100);
 
     // request the file list from http://particles-api.lugui.in
     const response = await fetch('https://particles-api.lugui.in');

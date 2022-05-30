@@ -8,8 +8,12 @@ const {
   Fluid,
 } = require('./Particles/Particles');
 const Random = require('./Utils/Random');
+let tileIndex = -1;
 
 let pixelData;
+let tileFrameCount;
+let tileFrameTimes;
+
 let canvas;
 let startX;
 let startY;
@@ -24,7 +28,10 @@ let lineOrder = [];
 let width;
 let height;
 
-let onPhysics = false;
+let stepsMultiplier = 1;
+
+let frameTimes = [];
+let lastFrameStartTime;
 
 onmessage = function (e) {
   handleMessage(e.data);
@@ -33,13 +40,18 @@ onmessage = function (e) {
 function handleMessage(message) {
   switch (message.type) {
     case 'init': initPixelGrid(message.data); break;
-    case 'doPhysics': doPhysics(); break;
+    case 'doPhysics': doPhysics(message.data); break;
     case 'updatePixels': updatePixels(message.data); break;
   }
 }
 
 function initPixelGrid(data) {
+  tileIndex = data.tileIndex;
+
   pixelData = new Int16Array(data.sharedBuffer);
+  tileFrameCount = new Int32Array(data.sharedFrameCountBuffer);
+  tileFrameTimes = new Float32Array(data.sharedFrameTimesBuffer);
+
   canvas = data.canvas;
   startX = data.startX;
   startY = data.startY;
@@ -67,7 +79,6 @@ function initPixelGrid(data) {
     type: 'initDone',
   });
 
-
   requestAnimationFrame(render);
 }
 
@@ -89,6 +100,14 @@ function shuffleArray(array) {
 }
 
 function render() {
+  const timeNow = performance.now();
+
+  const lastFrameTime = timeNow - lastFrameStartTime;
+  frameTimes.push(lastFrameTime);
+  if (frameTimes.length > 10) {
+    frameTimes.shift();
+  }
+
   let imagedata = ctx.createImageData(width, height);
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
@@ -113,15 +132,23 @@ function render() {
 
   ctx.putImageData(imagedata, 0, 0);
 
-  if (!onPhysics) {
-    // do here heavy stuff that takes a long time and should not interfere with the physics
-    computeUpdateOrderRadomness();
+  computeUpdateOrderRadomness();
+  doPhysics();
+
+  // get the average frame time from frameTimes
+  let averageFrameTime = 0;
+  for (let i = 0; i < frameTimes.length; i++) {
+    averageFrameTime += frameTimes[i];
+  }
+  averageFrameTime /= frameTimes.length;
+  if (!isNaN(averageFrameTime)) {
+    tileFrameTimes[tileIndex] = averageFrameTime;
+    stepsMultiplier = 60 / (1000 / averageFrameTime);
   }
 
+  lastFrameStartTime = timeNow;
   requestAnimationFrame(render);
 }
-
-
 
 function coordsToIndex(x, y) {
   // On a array of size screenWidth * screenHeight
@@ -132,20 +159,30 @@ function coordsToIndex(x, y) {
 
 
 function doPhysics() {
-  onPhysics = true;
-  // shuffleArray(lineOrder);
-  // for each pixel of the Tile from end to start
+
+  const mystep = tileFrameCount[tileIndex];
+
+  // if my step is greater than the thread on the smallest step don't do a physics frame
+  let minStep = Infinity;
+  for (let i = 0; i < tileFrameCount.length; i++) {
+    if (tileFrameCount[i] < minStep) {
+      minStep = tileFrameCount[i];
+    }
+  }
+
+  if (mystep > minStep) {
+    return;
+  }
+
+
   for (let y = endY - 1; y >= startY; y--) {
     // for (let x = endX - 1; x >= startX; x--) {
     for (let x of lineOrder[y]) {
       processPixel(x, y);
     }
   }
+  tileFrameCount[tileIndex]++;
 
-  postMessage({
-    type: 'donePhysics',
-  });
-  onPhysics = false;
 }
 
 
@@ -294,12 +331,11 @@ function reactionBlock(index, x, y) {
 
 function reactionOil(index, x, y) {
   const adjacent = [
+    [x, y - 1],
     [x - 1, y],
     [x + 1, y],
-    [x, y - 1],
     [x, y + 1],
   ];
-
 
   for (let [targetX, targetY] of adjacent) {
     if (!isInBounds(targetX, targetY)) continue;
@@ -327,15 +363,13 @@ function reactionOil(index, x, y) {
       if (Random.number() < 0.1) {
         setPixel(index, Particles.Fire);
       }
-
-      break;
     }
     if (!emmited) {
       pixelData[index + 3] -= 20;
     }
   }
 
-  [index, x, y] = quickFluid(index, x, y, 3);
+  [index, x, y] = fluidPhysics(index, x, y, Random.int(1, 3) * stepsMultiplier);
 
   // spread to adjacent pixels
   if (Random.number() < 0.1) {
@@ -375,7 +409,7 @@ function reactionDust(index, x, y) {
       )
     ) {
       // random chance
-      if (Random.number() < 0.63) {
+      if (Random.number() < 0.7) {
         // set the dust to fire
         pixelData[index] = Particles.Fire;
         return [index, x, y];
@@ -422,7 +456,7 @@ function reactionDust(index, x, y) {
   const prevY = y;
 
   let hasMoved = false;
-  [index, x, y, hasMoved] = quickSand(index, x, y, 4);
+  [index, x, y, hasMoved] = sandPhysics(index, x, y, Random.int(3, 5) * stepsMultiplier);
 
   if (hasMoved) {
     pixelData[index + 3]++;
@@ -468,6 +502,7 @@ function reactionDust(index, x, y) {
 }
 
 function reactionStone(index, x, y) {
+
   if (pixelData[index + 3] > 100) {
     pixelData[index] = Particles.Lava;
     return [index, x, y];
@@ -494,19 +529,7 @@ function reactionStone(index, x, y) {
     }
   }
 
-  // check if the pixel below is empty
-  let i = 0;
-  let canMove = true;
-  do {
-    if (isEmpty(x, y + 1)) {
-      y++;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
-      index = targetIndex;
-    } else {
-      canMove = false;
-    }
-  } while (++i <= 3 && canMove);
+  [index, x, y, hasMoved] = stonePhysics(index, x, y, Random.int(4, 10) * stepsMultiplier);
 
   return [index, x, y];
 }
@@ -518,7 +541,7 @@ function reactionWater(index, x, y) {
     return [index, x, y];
   }
 
-  [index, x, y] = quickFluid(index, x, y, 6);
+  [index, x, y] = fluidPhysics(index, x, y, Random.int(2, 6) * stepsMultiplier);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -607,7 +630,7 @@ function reactionLava(index, x, y) {
     }
   }
 
-  [index, x, y] = quickFluid(index, x, y, 3);
+  [index, x, y] = fluidPhysics(index, x, y, Random.int(1, 3) * stepsMultiplier);
 
   // spread to adjacent pixels
   if (Random.number() < 0.1) {
@@ -647,9 +670,12 @@ function reactionVoid(index, x, y) {
 
 function reactionFire(index, x, y) {
   // probability to expire
-  if (Random.number() > 0.95) {
+  if (pixelData[index + 3] <= 150) {
     removePixel(index);
     return [index, x, y];
+  }
+  if (Random.number() > 0.5) {
+    pixelData[index + 3]--;
   }
 
   const adjacent = [
@@ -672,34 +698,17 @@ function reactionFire(index, x, y) {
     }
   }
 
-  // attempts to go up
+  [index, x, y, hasMoved] = gasPhysics(index, x, y, Random.int(0, 2) * stepsMultiplier, false);
 
-  let i = 0;
-  let canMove = true;
-  do {
-    if (isInBounds(x, y - 1) && pixelData[coordsToIndex(x, y - 1)] === Particles.Air) {
-      y--;
-      const targetIndex = coordsToIndex(x, y);
+  if (Random.number() > 0.1) {
+    const direction = Random.direction();
+    const targetIndex = coordsToIndex(x + direction, y);
+    if (isInBounds(x + direction, y) && pixelData[targetIndex] === Particles.Air) {
+      x += direction;
       movePixel(index, targetIndex);
       index = targetIndex;
     }
-  } while (++i < 2 && canMove);
-
-  const direction = Random.number() > 0.5 ? 1 : -1;
-  if (isEmpty(x + direction, y, false)) {
-    x += direction;
-    const targetIndex = coordsToIndex(x, y);
-    movePixel(index, targetIndex);
-    index = targetIndex;
-  } else if (isEmpty(x - direction, y, false)) {
-    x -= direction;
-    const targetIndex = coordsToIndex(x, y);
-    movePixel(index, targetIndex);
-    index = targetIndex;
-  } else {
-    canMove = false;
   }
-
   return [index, x, y];
 }
 
@@ -797,7 +806,10 @@ function reactionAcidVapor(index, x, y) {
     }
   }
 
-  const direction = Random.number() > 0.5 ? 1 : -1;
+  [index, x, y, hasMoved] = gasPhysics(index, x, y, Random.int(-3, 1) * stepsMultiplier);
+
+  // spread to adjacent pixels
+  const direction = Random.direction();
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
@@ -807,16 +819,6 @@ function reactionAcidVapor(index, x, y) {
       index = targetIndex;
     }
   } while (++i < 1);
-
-  // random chance
-  if (Random.number() < 0.3) {
-    if (isEmpty(x, y - 1)) {
-      y--;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
-    }
-  }
-
   return [index, x, y];
 }
 
@@ -857,7 +859,7 @@ function reactionAcid(index, x, y) {
     }
   }
 
-  [index, x, y] = quickFluid(index, x, y, 6);
+  [index, x, y] = fluidPhysics(index, x, y, Random.int(2, 6) * stepsMultiplier);
 
   // spread to adjacent pixels
   const direction = Random.direction();
@@ -893,7 +895,10 @@ function reactionSteam(index, x, y) {
     return [index, x, y];
   }
 
-  const direction = Random.number() > 0.5 ? 1 : -1;
+  [index, x, y, hasMoved] = gasPhysics(index, x, y, Random.int(-3, 1) * stepsMultiplier);
+
+  // spread to adjacent pixels
+  const direction = Random.direction();
   i = 0;
   do {
     if (isEmpty(x + direction, y)) {
@@ -903,15 +908,6 @@ function reactionSteam(index, x, y) {
       index = targetIndex;
     }
   } while (++i < 1);
-
-  // random chance
-  if (Random.number() < 0.3) {
-    if (isEmpty(x, y - 1)) {
-      y--;
-      const targetIndex = coordsToIndex(x, y);
-      movePixel(index, targetIndex);
-    }
-  }
 
   return [index, x, y];
 }
@@ -947,12 +943,30 @@ function swapPixel(index1, index2) {
 
 /* physics shortcuts */
 
-function quickSand(index, x, y, maxMoves) {
+function stonePhysics(index, x, y, maxMoves, ignoreFire = true) {
   let hasMoved = false;
   let cantMove = false;
   let i = 0;
-  do {
-    if (isEmpty(x, y + 1)) {
+  while (i++ < maxMoves && !cantMove) {
+    if (isEmpty(x, y + 1, ignoreFire)) {
+      y++;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
+      hasMoved = true;
+    } else {
+      cantMove = true;
+    }
+  };
+  return [index, x, y, hasMoved];
+}
+
+function sandPhysics(index, x, y, maxMoves, ignoreFire = true) {
+  let hasMoved = false;
+  let cantMove = false;
+  let i = 0;
+  while (i++ < maxMoves && !cantMove) {
+    if (isEmpty(x, y + 1, ignoreFire)) {
       y++;
       const targetIndex = coordsToIndex(x, y);
       movePixel(index, targetIndex);
@@ -960,7 +974,7 @@ function quickSand(index, x, y, maxMoves) {
       hasMoved = true;
     } else {
       direction = Random.direction();
-      if (isEmpty(x + direction, y + 1)) {
+      if (isEmpty(x + direction, y + 1, ignoreFire)) {
         x += direction;
         y++;
         const targetIndex = coordsToIndex(x, y);
@@ -969,7 +983,7 @@ function quickSand(index, x, y, maxMoves) {
         hasMoved = true;
       } else {
         direction *= -1;
-        if (isEmpty(x + direction, y + 1)) {
+        if (isEmpty(x + direction, y + 1, ignoreFire)) {
           x += direction;
           y++;
           const targetIndex = coordsToIndex(x, y);
@@ -981,16 +995,16 @@ function quickSand(index, x, y, maxMoves) {
         }
       }
     }
-  } while (++i <= maxMoves && !cantMove);
+  }
   return [index, x, y, hasMoved];
 }
 
-function quickFluid(index, x, y, maxMoves) {
+function fluidPhysics(index, x, y, maxMoves, ignoreFire = true) {
   let hasMoved = false;
   let cantMove = false;
   let i = 0;
-  do {
-    if (isEmpty(x, y + 1)) {
+  while (i++ < maxMoves && !cantMove) {
+    if (isEmpty(x, y + 1, ignoreFire)) {
       y++;
       const targetIndex = coordsToIndex(x, y);
       movePixel(index, targetIndex);
@@ -998,7 +1012,7 @@ function quickFluid(index, x, y, maxMoves) {
       hasMoved = true;
     } else {
       direction = Random.direction();
-      if (isEmpty(x + direction, y + 1)) {
+      if (isEmpty(x + direction, y + 1, ignoreFire)) {
         x += direction;
         y++;
         const targetIndex = coordsToIndex(x, y);
@@ -1007,7 +1021,7 @@ function quickFluid(index, x, y, maxMoves) {
         hasMoved = true;
       } else {
         direction *= -1;
-        if (isEmpty(x + direction, y + 1)) {
+        if (isEmpty(x + direction, y + 1, ignoreFire)) {
           x += direction;
           y++;
           const targetIndex = coordsToIndex(x, y);
@@ -1016,7 +1030,7 @@ function quickFluid(index, x, y, maxMoves) {
           hasMoved = true;
         } else {
           direction = Random.direction();
-          if (isEmpty(x + direction, y)) {
+          if (isEmpty(x + direction, y, ignoreFire)) {
             x += direction;
             const targetIndex = coordsToIndex(x, y);
             movePixel(index, targetIndex);
@@ -1024,7 +1038,7 @@ function quickFluid(index, x, y, maxMoves) {
             hasMoved = true;
           } else {
             direction *= -1;
-            if (isEmpty(x + direction, y)) {
+            if (isEmpty(x + direction, y, ignoreFire)) {
               x += direction;
               const targetIndex = coordsToIndex(x, y);
               movePixel(index, targetIndex);
@@ -1037,7 +1051,48 @@ function quickFluid(index, x, y, maxMoves) {
         }
       }
     }
-  } while (++i <= maxMoves && !cantMove);
+  }
+  return [index, x, y, hasMoved];
+}
+
+function gasPhysics(index, x, y, maxMoves, ignoreFire = true) {
+  // identical to fluid physics but moves up
+
+  let hasMoved = false;
+  let cantMove = false;
+  let i = 0;
+
+  while (i++ < maxMoves && !cantMove) {
+    if (isEmpty(x, y - 1, ignoreFire, ignoreFire)) {
+      y--;
+      const targetIndex = coordsToIndex(x, y);
+      movePixel(index, targetIndex);
+      index = targetIndex;
+      hasMoved = true;
+    } else {
+      direction = Random.direction();
+      if (isEmpty(x + direction, y - 1, ignoreFire)) {
+        x += direction;
+        y--;
+        const targetIndex = coordsToIndex(x, y);
+        movePixel(index, targetIndex);
+        index = targetIndex;
+        hasMoved = true;
+      } else {
+        direction *= -1;
+        if (isEmpty(x + direction, y - 1, ignoreFire)) {
+          x += direction;
+          y--;
+          const targetIndex = coordsToIndex(x, y);
+          movePixel(index, targetIndex);
+          index = targetIndex;
+          hasMoved = true;
+        } else {
+          cantMove = true;
+        }
+      }
+    }
+  }
   return [index, x, y, hasMoved];
 }
 
