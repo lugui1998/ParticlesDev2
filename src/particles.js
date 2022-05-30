@@ -51,9 +51,18 @@ window.onload = async () => {
         await sandbox.loadFromCDN(p);
     }
 
-    window.addEventListener('resize', () => {
-        document.location.reload();
+    let resizeTimeout;
+    window.addEventListener('resize', async () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resize, 100);
     });
+
+    async function resize() {
+        const [data, metadata] = sandbox.end();
+        sandbox = new Sandbox(sandboxArea, tileGridSize, sidebarSize);
+        await sandbox.start();
+        await sandbox.loadPixelData(data, metadata);
+    }
 
     pause.addEventListener('click', () => {
         sandbox.togglePauseState();

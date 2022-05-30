@@ -272,8 +272,6 @@ class Sandbox {
         const data = new Int16Array(this.grid);
         const compressedData = deflate(data);
 
-        const buff = new Buffer(compressedData);
-
         const data8 = new Uint8Array(compressedData.length * 2);
         for (let i = 0; i < compressedData.length; i++) {
             data8[i * 2] = compressedData[i] & 0xff;
@@ -394,7 +392,11 @@ class Sandbox {
         }
 
         const decompressedData = inflate(data);
+        this.loadPixelData(decompressedData, metadata);
+    }
 
+        
+    loadPixelData(data, metadata){
         const maxWidth = Math.min(this.width, metadata.width);
         const maxHeight = Math.min(this.height, metadata.height);
 
@@ -413,14 +415,26 @@ class Sandbox {
         for (let x = 0; x < maxWidth; x++) {
             for (let y = 0; y < maxHeight; y++) {
                 const index = this.pixelCoordsToPixelIndex(x, y);
-                const filePixelIndex = (x + y * metadata.width) * pixelDataSize;
+                const dataIndex = (x + y * metadata.width) * pixelDataSize;
 
                 for (let i = 0; i < pixelDataSize; i++) {
-                    this.grid[index + i] = decompressedData[filePixelIndex + i];
+                    this.grid[index + i] = data[dataIndex + i];
                 }
 
             }
         }
+    }
+
+    end() {
+        const data = new Int16Array(this.grid);
+        const metadata = {
+            width: this.width,
+            height: this.height,
+        }
+        this.tiles.forEach((tile) => {
+            tile.terminate();
+        });
+        return [data, metadata];
     }
 
     /* Brush */

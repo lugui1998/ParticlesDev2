@@ -82,6 +82,7 @@ class Tile {
     }
 
     terminate() {
+        this.canvas.remove();
         this.worker.terminate();
     }
 
