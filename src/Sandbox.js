@@ -136,6 +136,8 @@ class Sandbox {
         setInterval(() => {
             this.updateBrush();
         }, 1);
+
+        this.setPauseState(false);
     }
 
     HandleOnMouseMove(e) {
@@ -320,7 +322,7 @@ class Sandbox {
     }
 
     async loadFromCDN(fileName) {
-        this.pauseState = true;
+        this.setPauseState(true);
 
         // request the file from https://particles-api.lugui.in
 
@@ -608,7 +610,14 @@ class Sandbox {
     }
 
     togglePauseState() {
-        this.pauseState = !this.pauseState;
+        this.setPauseState(!this.pauseState);
+    }
+
+    setPauseState(state) {
+        this.pauseState = state;
+        for(const tile of this.tiles){
+            tile.setPause(this.pauseState);
+        }
     }
 
     clear() {

@@ -78,6 +78,13 @@ class Tile {
 
     }
 
+    setPause(pause) {
+        this.worker.postMessage({
+            type: 'setPause',
+            data: pause
+        });
+    }
+
     terminate() {
         this.canvas.remove();
         this.worker.terminate();

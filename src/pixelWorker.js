@@ -14,6 +14,8 @@ let pixelData;
 let tileFrameCount;
 let tileFrameTimes;
 
+let pause = true;
+
 let canvas;
 let startX;
 let startY;
@@ -41,7 +43,7 @@ function handleMessage(message) {
   switch (message.type) {
     case 'init': initPixelGrid(message.data); break;
     case 'doPhysics': doPhysics(message.data); break;
-    case 'updatePixels': updatePixels(message.data); break;
+    case 'setPause': setPause(message.data); break;
   }
 }
 
@@ -80,6 +82,10 @@ function initPixelGrid(data) {
   });
 
   requestAnimationFrame(render);
+}
+
+function setPause(data) {
+  pause = data;
 }
 
 function computeUpdateOrderRadomness() {
@@ -132,8 +138,10 @@ function render() {
 
   ctx.putImageData(imagedata, 0, 0);
 
-  computeUpdateOrderRadomness();
-  doPhysics();
+  if (!pause) {
+    computeUpdateOrderRadomness();
+    doPhysics();
+  }
 
   // get the average frame time from frameTimes
   let averageFrameTime = 0;
